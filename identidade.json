@@ -1,0 +1,569 @@
+{
+  "_leia_primeiro": {
+    "o_que_e_este_arquivo": "Ficha tecnica de 'Cade a Galinha?!', um jogo de plataforma 2D em arquivo unico. Escrito para um modelo de IA que NAO tem acesso ao codigo: os valores aqui foram extraidos do fonte, nao estimados. Use como fonte de verdade para gerar arte, fases, textos ou codigo novo que combine com o que ja existe.",
+    "arquivo_do_jogo": "index.html",
+    "tudo_em_um_arquivo": "Nao existe build, bundler, node_modules nem pasta de assets. Toda a arte e desenhada em canvas por codigo no BootScene e todo o audio e sintetizado pela Web Audio API. As unicas dependencias externas sao o Phaser 3 (CDN jsdelivr) e a fonte Silkscreen (Google Fonts).",
+    "idioma": "Portugues do Brasil. Os textos que aparecem na tela usam acentos; os comentarios do codigo sao escritos SEM acentos, por convencao do projeto."
+  },
+  "meta": {
+    "titulo": "Cade a Galinha?!",
+    "genero": "plataforma 2D de precisao, com coleta e pontuacao",
+    "premissa": "Dois tratadores atrapalhados perseguem a Cócó, a galinha de estimacao do imperador, pelos telhados de um vilarejo feudal japones.",
+    "tom": "Comedia leve. Ninguem se machuca e ninguem apanha. 'Perder' e escorregar do telhado ou perder o emprego. Os inimigos saem correndo ofendidos, nao derrotados. Nada de sobrenatural: o vilao do meio da historia e um SAMURAI ROBO, uma maquina; ele transforma a Cócó em robo com um dispositivo, e no fim o tratador simplesmente arranca o dispositivo.",
+    "motor": "Phaser 3 (Arcade Physics)",
+    "resolucao_base": { "largura": 960, "altura": 540, "proporcao": "16:9" },
+    "bloco_do_mapa_px": 32,
+    "escala": "Phaser.Scale.FIT com CENTER_BOTH; pixelArt: true e roundPixels: true",
+    "plataformas": "navegador de desktop (teclado) e celular (pad de toque na tela)"
+  },
+  "identidade_visual": {
+    "estilo": "pixel art de 32px por bloco, silhuetas simples e leitura clara; contorno escuro em volta das formas; nada de gradiente suave (o ceu e feito de 26 faixas solidas para nao borrar)",
+    "paleta_base": {
+      "nome": "Sweetie 16 (GrafxKid)",
+      "observacao": "O jogo usa 15 das 16 cores da Sweetie 16 (a unica ausente e #257179) e acrescenta 4 tons proprios para reboco, madeira e pele.",
+      "cores_da_paleta": [
+        "#1a1c2c",
+        "#5d275d",
+        "#b13e53",
+        "#ef7d57",
+        "#ffcd75",
+        "#a7f070",
+        "#38b764",
+        "#29366f",
+        "#3b5dc9",
+        "#41a6f6",
+        "#73eff7",
+        "#f4f4f4",
+        "#94b0c2",
+        "#566c86",
+        "#333c57"
+      ],
+      "tons_proprios": { "reboco": "#ad978f", "madeira": "#4a1f4a", "pele": "#f5c6a0", "pele_sombra": "#d9926f" }
+    },
+    "papeis_de_cor": {
+      "escuro": { "hex": "#1a1c2c", "uso": "contorno de tudo, fundo de painel, cor do ceu no topo" },
+      "ui": { "hex": "#f4f4f4", "uso": "texto principal" },
+      "cinza": { "hex": "#94b0c2", "uso": "texto secundario e item bloqueado" },
+      "painel": { "hex": "#333c57", "uso": "fundo de caixa de menu" },
+      "painel_luz": { "hex": "#566c86", "uso": "borda de caixa de menu" },
+      "moeda": { "hex": "#ffcd75", "uso": "ovo dourado, destaque, item selecionado, cor de marca" },
+      "perigo": { "hex": "#ef7d57", "uso": "aviso" },
+      "perigo2": { "hex": "#ffcd75", "uso": "balao de fala de perigo, sol" },
+      "jogador_1": { "hex": "#41a6f6", "luz": "#73eff7", "uso": "Koburo: azul" },
+      "jogador_2": { "hex": "#38b764", "luz": "#a7f070", "uso": "Tobias: verde" },
+      "telha": { "hex": "#566c86", "luz": "#94b0c2", "escuro": "#333c57", "uso": "ceramica azul-ardosia dos telhados" },
+      "bloco": { "hex": "#5d275d", "topo": "#b13e53", "detalhe": "#ef7d57", "uso": "parede do vilarejo sob o telhado" }
+    },
+    "tipografia": {
+      "fonte": "Silkscreen (Google Fonts), pixelada",
+      "por_que": "Desenha as maiusculas acentuadas (A, C, E, O com til/cedilha/circunflexo) em tamanho cheio, entao 'KOBURO' e 'PERSEGUICAO' ficam legiveis.",
+      "regra": "Quase todo texto de tela e MAIUSCULO.",
+      "escala_fonte": 1.5,
+      "observacao": "A Silkscreen e mais estreita que a Press Start 2P, por isso os tamanhos pedidos sao multiplicados por ESCALA_FONTE antes de ir para o Phaser."
+    },
+    "regras_de_desenho": {
+      "direcao_dos_sprites": "TODO desenho de personagem e bicho olha para a DIREITA. O espelhamento e feito em codigo com flipX quando a criatura vira. Nunca desenhe um sprite olhando para a esquerda.",
+      "origem_dos_sprites": "setOrigin(0.5, 1) - o ponto de ancoragem fica nos PES, para todos encaixarem no mesmo chao.",
+      "squash_and_stretch": "O corpo de fisica e invisivel; um sprite separado o segue e e esticado/achatado (sx, sy) ao pular, pousar, dashar. A fisica nunca e deformada.",
+      "silhueta_do_fundo": "O vilarejo ao fundo e desenhado bem escuro e SEM brilho no topo, de proposito: assim nunca e confundido com um telhado em que da para pisar.",
+      "acessibilidade": "A variavel POUCO_MOV (segue prefers-reduced-motion e pode ser forcada nas configuracoes) reduz particulas, tremor de tela e piscadas. A variavel LEGENDAS mostra avisos escritos para quem joga sem som."
+    }
+  },
+  "cenarios": {
+    "como_funciona": "O ceu, o Monte Fuji e a silhueta do vilarejo sao sempre desenhados pelas MESMAS funcoes. O que muda e a tabela CENARIOS. Cada fase cita um id na chave 'cenario'. Fase sem essa chave cai no padrao 'tarde'.",
+    "campos": {
+      "ceu": "5 cores do degrade, de cima para baixo",
+      "astro": "sol ou lua (posicao relativa, raio e halo). null = ceu fechado, sem nenhum dos dois",
+      "estrelas": "quantas pintar no terco de cima; 'brilho' controla a variacao de alpha",
+      "nuvens": "o quanto as nuvens puxam para a cor do astro. ATENCAO: 0 faz a nuvem ficar igual ao ceu, ou seja, invisivel",
+      "extraNuvem": "faixas grossas e baixas por cima das normais (ceu carregado)",
+      "monte": "mistura da encosta do Fuji; 'cume' e a cor da neve dele",
+      "morro": "cor dos morrinhos baixos; 'vila' e a escuridao da silhueta do vilarejo"
+    },
+    "temas": {
+      "tarde": {
+        "descricao": "fim de tarde alaranjado, o visual assinatura do jogo",
+        "ceu": ["#1a1c2c", "#29366f", "#5d275d", "#b13e53", "#ef7d57"],
+        "astro": { "cor": "#ffcd75", "x": 0.78, "y": 0.62, "r": 0.085, "halo": 0.25 },
+        "estrelas": 60,
+        "brilho": 0.5,
+        "nuvens": 0.35,
+        "extraNuvem": 0,
+        "monte": 0.45,
+        "cume": "#f4f4f4",
+        "morro": "#29366f",
+        "vila": 0.35
+      },
+      "alvorada": {
+        "descricao": "rosa e dourado, sol baixo nascendo a esquerda",
+        "ceu": ["#20243f", "#3b3a6b", "#8c5a7d", "#e08a6b", "#ffd6a0"],
+        "astro": { "cor": "#fff0b8", "x": 0.16, "y": 0.7, "r": 0.075, "halo": 0.32 },
+        "estrelas": 28,
+        "brilho": 0.4,
+        "nuvens": 0.42,
+        "extraNuvem": 0,
+        "monte": 0.52,
+        "cume": "#f4f4f4",
+        "morro": "#3b3a6b",
+        "vila": 0.3
+      },
+      "noite": {
+        "descricao": "azul profundo, lua palida alta e ceu muito estrelado",
+        "ceu": ["#05060f", "#0b1028", "#16204a", "#24306b", "#3a3f7a"],
+        "astro": { "cor": "#e8ecf7", "x": 0.22, "y": 0.3, "r": 0.055, "halo": 0.18 },
+        "estrelas": 170,
+        "brilho": 0.75,
+        "nuvens": 0.16,
+        "extraNuvem": 0,
+        "monte": 0.24,
+        "cume": "#cfd8ea",
+        "morro": "#141a3a",
+        "vila": 0.16
+      },
+      "tempestade": {
+        "descricao": "ceu fechado em cinza-azulado, sem sol nem lua, com faixas grossas de nuvem",
+        "ceu": ["#161a26", "#252d40", "#3d475d", "#5d6a82", "#8a93a6"],
+        "astro": null,
+        "estrelas": 0,
+        "brilho": 0,
+        "nuvens": 0.34,
+        "extraNuvem": 4,
+        "monte": 0.28,
+        "cume": "#aeb8c6",
+        "morro": "#232a3a",
+        "vila": 0.2
+      },
+      "neve": {
+        "descricao": "azul palido quase branco, frio de alta altitude",
+        "ceu": ["#2b3350", "#47527a", "#7c88ab", "#b9c4d9", "#e6edf7"],
+        "astro": { "cor": "#ffffff", "x": 0.7, "y": 0.34, "r": 0.06, "halo": 0.2 },
+        "estrelas": 12,
+        "brilho": 0.3,
+        "nuvens": 0.22,
+        "extraNuvem": 2,
+        "monte": 0.66,
+        "cume": "#ffffff",
+        "morro": "#47527a",
+        "vila": 0.42
+      },
+      "luar": {
+        "descricao": "lua cheia enorme no alto do palacio: a luta final",
+        "ceu": ["#05060f", "#121433", "#252a5a", "#3b3f7a", "#5a5d9c"],
+        "astro": { "cor": "#f4f4f4", "x": 0.5, "y": 0.3, "r": 0.1, "halo": 0.28 },
+        "estrelas": 140,
+        "brilho": 0.7,
+        "nuvens": 0.2,
+        "extraNuvem": 0,
+        "monte": 0.3,
+        "cume": "#cfd8ea",
+        "morro": "#141a3a",
+        "vila": 0.14
+      }
+    },
+    "clima_vivo": "Tabela AMBIENTES: cada cenario ganha particula propria na tela (tarde: poeira dourada; alvorada: petalas; noite e luar: vaga-lumes; tempestade: chuva e relampagos com trovao; neve: flocos) e uma vinheta nas bordas.",
+    "nota_tecnica": "O tema padrao gera as texturas com os nomes antigos ('ceu', 'montanhas', 'morros'), que o menu, a Perseguicao e a tela de resultado ja usam. Os demais ganham sufixo: 'ceu_noite', 'montanhas_neve' e assim por diante."
+  },
+  "personagens": {
+    "regra_de_design": "Os dois terminam QUALQUER fase. O que muda e o caminho, nao a capacidade. Nenhum e melhor que o outro: e uma troca entre pressa e calma.",
+    "jogaveis": [
+      {
+        "id": 1,
+        "nome": "MESTRE KOBURO",
+        "apelido": "O VETERANO METIDO",
+        "estilo": "MOBILIDADE",
+        "cor": "#41a6f6",
+        "cor_luz": "#73eff7",
+        "grito": "DEIXA COMIGO!",
+        "historia": "Cuida das galinhas do imperador ha 30 anos e jura que nunca perdeu nenhuma... ate hoje. Vive dizendo 'deixa comigo' e sai na frente.",
+        "habilidades": [
+          { "nome": "DASH DUPLO", "tecla": "dash", "desc": "Duas cargas: a segunda vale no ar." },
+          { "nome": "PIRUETA", "tecla": "hab", "desc": "Impulso para cima. Alcanca as rotas altas." },
+          { "nome": "MERGULHO", "tecla": "baixo", "desc": "No ar: cai rapido sem perder a embalada." }
+        ],
+        "numeros": {
+          "dashDur_ms": 194,
+          "dashVel": 672,
+          "dashSai": 347,
+          "cargas": 2,
+          "recarga_ms": 260,
+          "piruetaVY": -540,
+          "piruetaVX": 150,
+          "piruetaCd_ms": 900,
+          "mergulhoVY": 820
+        }
+      },
+      {
+        "id": 2,
+        "nome": "TOBIAS",
+        "apelido": "O APRENDIZ APAVORADO",
+        "estilo": "CONTROLE",
+        "cor": "#38b764",
+        "cor_luz": "#a7f070",
+        "grito": "V-VAMOS NESSA!",
+        "historia": "Chegou ha um mes e, sem querer, deixou o portao do galinheiro aberto. Treme ate parado, mas pensa antes de pular - e chega la.",
+        "habilidades": [
+          { "nome": "ESCUDO", "tecla": "hab", "desc": "Uma bolha que aguenta perigo, bicho e chefe." },
+          { "nome": "PISAO", "tecla": "baixo", "desc": "No ar: baque que quebra, empurra e atordoa." },
+          { "nome": "DASH FIRME", "tecla": "dash", "desc": "Uma carga, mais curto. O basico bem feito." }
+        ],
+        "numeros": {
+          "dashDur_ms": 166,
+          "dashVel": 608,
+          "dashSai": 314,
+          "cargas": 1,
+          "recarga_ms": 0,
+          "escudoDur_ms": 2200,
+          "escudoCd_ms": 6000,
+          "pisaoVY": 980,
+          "pisaoCd_ms": 700,
+          "pisaoRaio_px": 96
+        }
+      }
+    ],
+    "nao_jogaveis": {
+      "a_galinha": "CÓCÓ (escrito assim na tela, em maiusculo e com os acentos) - a galinha de estimacao do imperador. Nos identificadores do codigo ela e 'coco' sem acento (texturas coco0..7, cocoR0..7, cr_* robo grande, cn_* normal grande; BOSSES.coco; desenhaCoco). Branca, com uma coroinha. Foge sempre um pouco a frente, cacareja 'CO CO!' e bota ovos dourados de susto. Nunca e alcancada: no fim de cada fase ela escapa de novo, rindo. Na fase 5 o Samurai Robo prende um DISPOSITIVO no pescoco dela e ela vira a GALINHA ROBO (corpo de chapas de aco, olho de LED, antena na coroa) - e assim que ela foge nas fases 6 a 9 e e o chefe final da fase 10. Sem o dispositivo, volta a ser a Cócó de sempre.",
+      "o_imperador": "Aparece so na Perseguicao, bravo, empurrando a guarda imperial que avanca pela tela. Ser alcancado por ela e perder o emprego, nao morrer."
+    }
+  },
+  "inimigos": {
+    "regra": "Todo bicho existe por um MOTIVO de jogo, nao para encher o mapa. Todos podem ser resolvidos pelos DOIS personagens: pulando na cabeca (qualquer um) ou, com o Tobias, de pisao ou protegido pelo escudo. O DASH NAO PROTEGE de nada - atravessar correndo custa o tombo.",
+    "bichos_do_telhado": [
+      {
+        "id": "gato",
+        "letra_no_mapa": "E",
+        "papel": "patrulha uma plataforma: obriga a escolher a hora de passar",
+        "grito": "FSSSH!",
+        "vel": 58,
+        "pontos": 150,
+        "caixa": { "larg": 24, "alt": 18 },
+        "cores": { "pelo": "#6b5a7a", "pelo_luz": "#9b86ad" }
+      },
+      {
+        "id": "corvo",
+        "letra_no_mapa": "V",
+        "papel": "voa num vaivem previsivel: obstaculo de ritmo no ar",
+        "grito": "CRAA!",
+        "vel": 96,
+        "alcance": 128,
+        "sobe": 26,
+        "pontos": 150,
+        "caixa": { "larg": 24, "alt": 18 },
+        "cores": { "pena": "#2b2f42", "pena_luz": "#4b5169" }
+      },
+      {
+        "id": "guarda",
+        "letra_no_mapa": "G",
+        "papel": "patrulha e PERSEGUE quando te ve: tira o jogador do lugar",
+        "grito": "PARADO AI!",
+        "vel": 52,
+        "vel_corrida": 138,
+        "vista": 210,
+        "folego_ms": 2600,
+        "descanso_ms": 900,
+        "pontos": 300,
+        "caixa": { "larg": 22, "alt": 28 }
+      }
+    ],
+    "chefes": [
+      {
+        "id": "samurai",
+        "nome": "SAMURAI ROBO",
+        "fase": 5,
+        "onde": "arena no fim do telhado da Ventania (colunas 100-129); a luta comeca ao entrar nela e a camera trava",
+        "descricao": "Maquina de guerra com armadura de samurai: capacete de aco com laminas douradas, visor de LED vermelho, grade de alto-falante na boca, ombreiras e peito laqueados de vermelho, reator aceso no peito, juntas parafusadas, mochila com dois escapamentos e katana de plasma.",
+        "folego": 6,
+        "hud": "barra de vida com retrato e marcas de fase",
+        "fases": {
+          "I (6-4)": ["corteH", "corteV", "combo", "disparada", "salto"],
+          "II (3-2) SOBRECARGA": "+ ondas de plasma, velocidade 1.2",
+          "III (1) MODO FURIA": "+ descarga total (circulo que explode), velocidade 1.4"
+        },
+        "regra_de_leitura": "Golpe BAIXO (marca vermelha no chao) = pule. Golpe ALTO (marca amarela na altura da cabeca) = fique no chao. Ao fim de cada rodada ele superaquece e se ajoelha soltando vapor: e a janela para pular na cabeca.",
+        "cutscenes": [
+          "entrada: desce do ceu nos propulsores, liga o visor e acende a katana",
+          "virada para a fase II (alarme de sobrecarga)",
+          "fase III (pane, reinicia no modo furia)",
+          "derrota: entra em pane e desliga; religa uma ultima vez e lanca o DISPOSITIVO, que gruda no pescoco da Cócó e a transforma na Galinha Robo"
+        ]
+      },
+      {
+        "id": "guarda",
+        "nome": "O GIGANTE REAL",
+        "fase": 7,
+        "onde": "arena-surpresa no fim da Ronda (colunas 92-121), em volta do estandarte",
+        "descricao": "O guardao imperial de sempre (farda vermelha, chapeu jingasa, bigodao). A fase parece terminar no estandarte; quando o jogador o toca, aparece 'FASE CONCLUIDA!', o telhado treme e ele cai do ceu gritando 'ACHOU QUE TINHA ACABADO, NE? ME DA A GALINHAAA!!!!'.",
+        "folego": 3,
+        "rotulo_hud": "FOLEGO DO GIGANTE REAL",
+        "ataques_por_rodada": { "3": ["investida"], "2": ["pisao", "investida"], "1": ["telhas", "pisao", "investida"] }
+      },
+      {
+        "id": "coco",
+        "nome": "A GALINHA ROBO",
+        "fase": 10,
+        "descricao": "A propria Cócó, desenhada grande (2,6x a grade da pequena) com o corpo de chapas de aco rebitadas, olho de LED, barbela de painel aceso, pernas de pistao, antena na coroa e o dispositivo azul no pescoco.",
+        "folego": 8,
+        "fases": {
+          "I (8-6)": ["bica", "garras", "projetil (ovos-bomba)", "rajada", "disparada"],
+          "II (5-3) TURBO": "mais rapida (1.25)",
+          "III (2) SOBRECARGA": "+ bombardeio (mergulho com chuva de penas de aco), 1.45",
+          "IV (1) CURTO-CIRCUITO": "o dispositivo falha; anel de ovos-bomba com uma brecha"
+        },
+        "cutscenes": [
+          "entrada (encara o jogador do poleiro e liga o LED)",
+          "viradas de fase",
+          "final: ela entra em pane, o tratador vai ate ela e ARRANCA o dispositivo; as chapas caem e ela volta ao normal",
+          "cena final: ela bota um ovo dourado - 'FINALMENTE ACABOU.'"
+        ]
+      }
+    ],
+    "como_derrotar_um_chefe": "Pular na cabeca durante a janela de tontura/superaquecimento. O Gigante Real se rende; os robos entram em pane."
+  },
+  "fisica": {
+    "observacao": "Valores em px e px/s. A gravidade so pode ficar desligada ENQUANTO dura um dash ou um pisao; em qualquer outro momento ela precisa estar ligada.",
+    "constantes": {
+      "GRAV": 1900,
+      "CORRIDA": 210,
+      "ACEL_CHAO": 1500,
+      "ACEL_AR": 1100,
+      "ATR_CHAO": 1700,
+      "ATR_AR": 520,
+      "FREIO_EXC": 900,
+      "PULO": -640,
+      "CORTE": -220,
+      "COYOTE_ms": 110,
+      "BUFFER_ms": 130,
+      "DASH_VEL": 640,
+      "DASH_DUR_ms": 180,
+      "DASH_REC_ms": 320,
+      "DASH_SAI": 330,
+      "QUEDA_MAX": 900
+    },
+    "alcance_util": {
+      "pulo_sobe_px": 108,
+      "pulo_sobe_blocos": 3.3,
+      "pulo_cruza_blocos": 4.4,
+      "pulo_mais_dash_cruza_blocos": 8,
+      "regra": "Buracos de 5 ou mais blocos exigem dash. Nenhuma fase deve ter vao maior que o alcance do Tobias (o de dash mais curto) - existe um teste automatico que verifica isso."
+    },
+    "elementos": {
+      "MOLA": { "valor": -960, "o_que_e": "impulso do trampolim; sobe cerca de 7,6 blocos" },
+      "EMPURRA": { "valor": 120, "o_que_e": "velocidade da caixa sendo empurrada" },
+      "TREME_Q_ms": { "valor": 400, "o_que_e": "tempo tremendo antes da telha rachada cair" },
+      "VOLTA_Q_ms": { "valor": 3200, "o_que_e": "tempo ate a telha rachada voltar ao lugar" },
+      "QUIQUE": { "valor": -620, "o_que_e": "quique ao pular na cabeca de um chefe" },
+      "FANTASMA_ON_ms": { "valor": 2200, "o_que_e": "tempo com a telha fantasma firme" },
+      "FANTASMA_OFF_ms": { "valor": 1400, "o_que_e": "tempo com ela sumida" },
+      "FANTASMA_AVISO_ms": { "valor": 500, "o_que_e": "piscada antes de SUMIR (nao ha aviso antes de voltar)" },
+      "ESCORREGA": { "valor": 1040, "o_que_e": "empurrao por segundo da telha escorregadia, sempre para a DIREITA" },
+      "VENTO": { "valor": 1500, "o_que_e": "empurrao para cima da corrente de ar" },
+      "VENTO_MAX": { "valor": -290, "o_que_e": "velocidade maxima de subida no vento" }
+    }
+  },
+  "mapas": {
+    "formato": "ASCII desenhado a mao. Cada caractere e um bloco de 32x32 px. Linhas curtas sao completadas com '.' pelo carregador, entao da para editar sem contar colunas. Todas as fases tem 17 linhas de altura.",
+    "legenda": {
+      "#": "telhado solido",
+      "^": "telha quebrada (derruba ao toque)",
+      "L": "buraco no telhado",
+      "o": "ovo dourado (100 pontos)",
+      "s": "ovo SECRETO (500 pontos, vale 5 ovos e conta para o desafio dos segredos)",
+      "P": "nascimento do jogador",
+      "F": "estandarte de chegada (fim da fase)",
+      "C": "lanterna/checkpoint - ATENCAO: vira o ponto de renascimento, entao nunca pode ficar sobre um buraco",
+      "-": "tabua ao vento (plataforma movel horizontal)",
+      "|": "tabua ao vento (plataforma movel vertical)",
+      "T": "trampolim (super-pulo) - precisa de ceu aberto acima, senao bate a cabeca",
+      "Q": "telha rachada que cede e cai",
+      "B": "caixa empurravel",
+      "X": "lugar onde o CHEFE aparece (so em fases de chefe; a fase vira uma arena fechada)",
+      "D": "telha fantasma (aparece e some no ritmo, piscando antes de sumir)",
+      ":": "telha trincada (so o DASH ou o PISAO derrubam; atras dela costuma ter atalho ou segredo)",
+      "A": "telha escorregadia (empurra quem esta em cima, para a direita)",
+      "~": "corrente de ar (sopro que leva para o alto)",
+      "E": "gato de telhado",
+      "V": "corvo",
+      "G": "guarda patrulheiro",
+      ".": "vazio"
+    },
+    "regras_de_bom_desenho": [
+      "Bicho de chao (E, G) precisa de telhado solido logo abaixo, senao a patrulha nao tem onde andar e ele fica parado no ar.",
+      "Checkpoint (C) precisa de piso embaixo. Sobre um buraco, ele vira um ciclo de morte.",
+      "Trampolim (T) precisa de apoio embaixo e de ceu aberto acima (o super-pulo sobe ~7 blocos).",
+      "Ovo nunca deve ficar cercado de telhado pelos 4 lados, nem depois do estandarte F (a fase termina ao tocar a bandeira).",
+      "Perigo colado no nascimento e injusto: o jogador leva antes de reagir.",
+      "Ovo sobre buraco e valido e comum - e recompensa por atravessar de dash."
+    ]
+  },
+  "fases": {
+    "quantidade": 10,
+    "tipos": ["normal", "precisao", "velocidade", "sobrevivencia", "chefe"],
+    "progressao_de_clima": "Comeca no fim de tarde, amanhece, a noite cai, a tempestade da Ventania traz o Samurai Robo, segue a noite, a neve, a ultima corrida no fim de tarde e termina sob a lua cheia.",
+    "lista": [
+      {
+        "n": 1,
+        "nome": "TELHADOS DO PALACIO",
+        "tipo": "normal",
+        "cenario": "tarde",
+        "ensina": "andar, pular, seguir a Cócó"
+      },
+      { "n": 2, "nome": "O GRANDE VAO", "tipo": "normal", "cenario": "tarde", "ensina": "dash, inclusive no ar" },
+      {
+        "n": 3,
+        "nome": "TELHAS PODRES",
+        "tipo": "precisao",
+        "cenario": "alvorada",
+        "ensina": "o telhado deixa de ser confiavel"
+      },
+      {
+        "n": 4,
+        "nome": "OLHO DE GATO",
+        "tipo": "normal",
+        "cenario": "noite",
+        "ensina": "primeiros bichos e a telha trincada"
+      },
+      {
+        "n": 5,
+        "nome": "VENTANIA",
+        "tipo": "normal",
+        "cenario": "tempestade",
+        "tamanho": "150x17",
+        "ensina": "tabuas moveis e corrente de ar",
+        "chefe_no_fim": "samurai"
+      },
+      {
+        "n": 6,
+        "nome": "BANDO DE CORVOS",
+        "tipo": "precisao",
+        "cenario": "noite",
+        "ensina": "telhas fantasma e corvos (a Cócó ja e robo)"
+      },
+      {
+        "n": 7,
+        "nome": "A RONDA",
+        "tipo": "normal",
+        "cenario": "noite",
+        "tamanho": "122x17",
+        "ensina": "guardas que perseguem, caixas e paredes trincadas",
+        "chefe_no_fim": "guarda (surpresa no estandarte)"
+      },
+      { "n": 8, "nome": "O TELHADO QUE SOME", "tipo": "sobrevivencia", "cenario": "neve", "limite_ms": 88000 },
+      { "n": 9, "nome": "PERSEGUICAO FINAL", "tipo": "velocidade", "cenario": "tarde" },
+      {
+        "n": 10,
+        "nome": "A GALINHA ROBO",
+        "tipo": "chefe",
+        "cenario": "luar",
+        "tamanho": "30x17",
+        "boss": "coco",
+        "final": true
+      }
+    ],
+    "progressao": "Cada fase abre com um cartao (numero, nome e a NOVIDADE que traz) e a tela de resultado mostra 'A SEGUIR' com a proxima fase - chefe ainda nao enfrentado aparece so como silhueta. A surpresa da fase 7 nao aparece em lugar nenhum antes (nem etiqueta de chefe na lista de fases)."
+  },
+  "modos_de_jogo": [
+    {
+      "id": "campanha",
+      "nome": "CAMPANHA",
+      "desc": "10 fases e 3 chefes (o Samurai Robo no fim da fase 5, o Gigante Real de surpresa no fim da 7 e a Galinha Robo na 10), com pontuacao, estrelas, desafios e cutscenes."
+    },
+    {
+      "id": "diario",
+      "nome": "DESAFIO DO DIA",
+      "desc": "Um objetivo novo por dia, sorteado pela data (a mesma data sempre da o mesmo desafio)."
+    },
+    { "id": "infinito", "nome": "MODO INFINITO", "desc": "Telhado sem fim, sozinho, correndo da guarda imperial." },
+    {
+      "id": "perseguicao",
+      "nome": "PERSEGUICAO 2 JOGADORES",
+      "desc": "Dois jogadores no mesmo teclado, tela dividida. O dash vira sabotagem: esbarrar no outro o empurra. So teclado - o pad de toque comanda apenas o jogador 1."
+    }
+  ],
+  "pontuacao": {
+    "valores": { "ovo": 100, "ovo_secreto": 500, "checkpoint": 50, "chefe": 1000, "segredo": 750, "bicho": 150 },
+    "combo": {
+      "janela_ms": 3200,
+      "passo_do_multiplicador": 4,
+      "multiplicador_maximo": 5,
+      "regra": "Ovos seguidos aumentam o combo; a cada 4 do combo o multiplicador sobe, ate 5x. Parar de encadear zera."
+    },
+    "bonus_de_fim_de_fase": { "por_segundo_economizado": 40, "coleta_completa": 1500, "sem_cair": 1200, "perfeito": 2500 },
+    "desafios_por_fase": ["tudo", "limpo", "rapido", "combo", "segredo", "hab"],
+    "conquistas": 18,
+    "estrelas": "Ate 3 por fase, conforme os desafios cumpridos."
+  },
+  "audio": {
+    "como_e_feito": "Nenhum arquivo externo. Efeitos sao osciladores da Web Audio API; a trilha e sequenciada nota a nota, um compasso por vez, agendado um pouco antes da hora para nao engasgar quando o navegador se distrai.",
+    "barramentos": "MUSICA e EFEITOS tem volumes separados, os dois passando por um volume geral.",
+    "faixas": [
+      { "id": "menu", "bpm": 84, "onda": "triangle", "clima": "calmo, quase um sino de templo" },
+      { "id": "fase", "bpm": 132, "onda": "square", "clima": "passo de corrida, animado" },
+      { "id": "chefe", "bpm": 150, "onda": "sawtooth", "clima": "grave e tenso, mas ainda comico" },
+      { "id": "corrida", "bpm": 160, "onda": "square", "clima": "rapido e ofegante" },
+      { "id": "fim", "clima": "fanfarra curtinha em loop leve" },
+      { "id": "samurai", "bpm": 116, "clima": "grave e marcial, com taiko" },
+      { "id": "samurai2", "bpm": 148, "clima": "o mesmo tema, mais rapido (sobrecarga e modo furia)" },
+      { "id": "drama", "bpm": 64, "clima": "quase parado: cutscenes" },
+      { "id": "robo", "bpm": 156, "clima": "o cacarejo virou um arpejo de maquina" },
+      { "id": "robo2", "bpm": 176, "clima": "fases III e IV da Galinha Robo" },
+      { "id": "alivio", "bpm": 76, "clima": "tom maior: o dispositivo saiu" },
+      { "id": "final", "bpm": 96, "clima": "leve e quentinha: finalmente acabou" }
+    ],
+    "campos_opcionais_das_faixas": "oitava, oitBaixo e tambor (16 passos: T = taiko, x = chiado). Sem eles a faixa toca como as antigas.",
+    "escala": "Pentatonica - e o que da o sabor japones sem precisar de instrumento nenhum.",
+    "sons_dos_robos": "roboVoz, bipe, servo, curto, desliga, liga, clank, jato (propulsor), arranca (o dispositivo saindo), mecaniza (a transformacao), cocoRobo e cocoRoboRi."
+  },
+  "controles": {
+    "acoes": ["esq", "dir", "pulo", "baixo", "dash", "hab"],
+    "teclado_padrao": {
+      "jogador_1": {
+        "esq": "seta esquerda",
+        "dir": "seta direita",
+        "pulo": "seta cima",
+        "baixo": "seta baixo",
+        "dash": "Z ou Shift",
+        "hab": "C"
+      },
+      "jogador_2": { "esq": "A", "dir": "D", "pulo": "W", "baixo": "S", "dash": "L ou K", "hab": "J" }
+    },
+    "atalhos_fixos": { "pausa": "P ou Esc", "som": "M", "tela_cheia": "F", "confirmar": "Enter" },
+    "remapeamento": "Todas as 6 acoes sao remapeaveis por jogador, com deteccao de conflito (tecla ja usada pelo outro jogador, pela mesma acao ou por um atalho fixo).",
+    "toque": {
+      "quando_aparece": "No primeiro toque de verdade. Some de novo se alguem usar o teclado, entao no PC nada muda.",
+      "layout_na_partida": "Balancim largo de esquerda/direita embaixo a esquerda (andar e o que mais se faz, entao ganha os maiores alvos), com o descer acima. A direita, tres circulos em arco de polegar: PULO (o maior, no canto), DASH e ESPECIAL.",
+      "layout_nas_telas": "Cruz completa de navegacao a esquerda; dash e especial somem e o botao grande vira OK.",
+      "realimentacao": "O botao de ESPECIAL mostra o nome da habilidade do personagem e a recarga como um setor escuro que vai sumindo; o de DASH mostra as cargas em pontinhos. As contas sao as mesmas da barra do HUD."
+    }
+  },
+  "arquitetura": {
+    "cenas_phaser": ["BootScene", "MenuScene", "CampaignScene", "RaceScene", "GameOverScene"],
+    "boot": "Desenha TODA a arte do jogo em canvas e registra as animacoes. Nada e carregado de disco.",
+    "onde_mexer_em_cada_coisa": {
+      "FIS / ELEM / HAB / PERFIS": "numeros de fisica, elementos e habilidades",
+      "MAPAS + FASES": "as fases em ASCII e os dados de cada uma",
+      "CENARIOS": "clima e paleta de fundo de cada fase",
+      "Controles": "teclas, remapeamento e conflitos",
+      "Placar / PONT / DESAFIOS": "pontuacao, combo e objetivos",
+      "CONQUISTAS / Diario": "progressao de longo prazo",
+      "BICHOS / BOSSES": "inimigos e chefes",
+      "TOQUE": "controle de celular"
+    },
+    "inimigos_sem_corpo_de_fisica": "Bichos e chefes NAO usam corpo de fisica: cada um e um sprite mais um retangulo conferido a mao por quadro. Isso mantem a fisica do jogador intocada e deixa o comportamento explicito.",
+    "forcas_de_fora": "Trampolim, quique de chefe e telha escorregadia sao aplicados DEPOIS da fisica do jogador, no update da fase, para nada sobrescrever. As constantes de FIS nunca mudam.",
+    "save": "localStorage, com chave fixa e numero de versao proprio. Toda versao nova sabe migrar a anterior; nada e apagado sem o jogador pedir.",
+    "autoteste": "runGameTests() no console do navegador confere save, migracao, controles, pontuacao, desafios, progressao, mapas, chefes, arenas, roteiro das cutscenes e faixas. Sao 35 testes. Abrir a pagina com ?teste na URL expoe window.__dbg para inspecao externa.",
+    "cutscenes": "Roteiro (sequenciador de passos: ms, ini, passo, ate) rodando no update da fase - a pausa congela tudo. Cinema desenha as faixas pretas, os cartoes de titulo e as falas, presos na tela mesmo com zoom de camera. A primeira vez cada cutscene e obrigatoria; depois ENTER pula (Save.d.cenas).",
+    "save_v5": "VERSAO_SAVE 5: a campanha passou de 12/13 para 10 fases. MIGRA_FASES_V5 leva o progresso de cada fase antiga para o numero novo (a Corrida no Beiral, a arena do guardao e o Capitao sairam); o que estava aberto continua aberto, e quem tinha terminado a ultima fase antiga ganha o chefe final aberto.",
+    "arenas": "FASES[i].arena = { boss, c0, c1, gatilho }: gatilho 'entrada' (a luta comeca ao entrar, Ventania) ou 'bandeira' (a luta comeca ao tocar o estandarte, Ronda). A arena tem a largura exata da tela (30 colunas)."
+  },
+  "convencoes_para_quem_for_mexer": [
+    "Tudo continua em UM arquivo: nada de assets externos, nada de build.",
+    "Comentarios em portugues SEM acentos; textos de tela COM acentos e em maiusculo.",
+    "Todo sprite e desenhado olhando para a direita e espelhado em codigo.",
+    "Acrescentar um cenario e acrescentar uma entrada em CENARIOS e citar o id na fase.",
+    "Acrescentar um chefe e acrescentar um tema em TEMAS_CHEFE, gerar os quadros com um prefixo novo e registrar em BOSSES.",
+    "Nada de violencia: o vocabulario e 'escorregar', 'perder o emprego', 'o bicho sai correndo ofendido'.",
+    "Chefe com barra de vida: def.hud = 'barra', fasesFolego/velFase/nomesFase/cenaFase, e cada ataque segue PREPARO (pose + '!' + marca) -> GOLPE -> PAUSA, com os tempos passando por b.ms() para encolher nas fases rapidas.",
+    "Nada de sobrenatural nos viloes: os chefes novos sao maquinas (vapor, faiscas, LED, pane), nao demonios.",
+    "Todo efeito novo respeita POUCO_MOV (sem tremor, flash nem hitstop; menos particulas) e os avisos importantes tambem saem por legenda() para quem joga sem som."
+  ]
+}
