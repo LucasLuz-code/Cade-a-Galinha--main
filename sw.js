@@ -9,7 +9,7 @@
 //  Trocou algum arquivo da lista abaixo (ou acrescentou um)? Suba o numero de
 //  VERSAO: isso faz o aparelho baixar tudo de novo e jogar fora o antigo.
 // ============================================================================
-var VERSAO = 'galinha-v5';
+var VERSAO = 'galinha-v7';
 var ARQUIVOS = [
   './',
   'index.html',

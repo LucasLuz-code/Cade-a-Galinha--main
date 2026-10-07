@@ -158,6 +158,19 @@
         "cume": "#cfd8ea",
         "morro": "#141a3a",
         "vila": 0.14
+      },
+      "jardim": {
+        "descricao": "so na cena depois dos creditos: o sol se pondo atras do cume do Fuji, ceu rosa e dourado",
+        "ceu": ["#2b2350", "#5b3a78", "#b8577e", "#f08a6e", "#ffd2a0"],
+        "astro": { "cor": "#fff0c0", "x": 0.5, "y": 0.3, "r": 0.075, "halo": 0.3 },
+        "estrelas": 14,
+        "brilho": 0.35,
+        "nuvens": 0.5,
+        "extraNuvem": 0,
+        "monte": 0.5,
+        "cume": "#ffffff",
+        "morro": "#5b3a78",
+        "vila": 0.3
       }
     },
     "clima_vivo": "Tabela AMBIENTES: cada cenario ganha particula propria na tela (tarde: poeira dourada; alvorada: petalas; noite e luar: vaga-lumes; tempestade: chuva e relampagos com trovao; neve: flocos) e uma vinheta nas bordas.",
@@ -221,7 +234,7 @@
       }
     ],
     "nao_jogaveis": {
-      "a_galinha": "CÓCÓ (escrito assim na tela, em maiusculo e com os acentos) - a galinha de estimacao do imperador. Nos identificadores do codigo ela e 'coco' sem acento (texturas coco0..7, cocoR0..7, cr_* robo grande, cn_* normal grande; BOSSES.coco; desenhaCoco). Branca, com uma coroinha. Foge sempre um pouco a frente, cacareja 'CO CO!' e bota ovos dourados de susto. Nunca e alcancada: no fim de cada fase ela escapa de novo, rindo. Na fase 5 o Samurai Robo prende um DISPOSITIVO no pescoco dela e ela vira a GALINHA ROBO (corpo de chapas de aco, olho de LED, antena na coroa) - e assim que ela foge nas fases 6 a 9 e e o chefe final da fase 10. Sem o dispositivo, volta a ser a Cócó de sempre.",
+      "a_galinha": "CÓCÓ (escrito assim na tela, em maiusculo e com os acentos) - a galinha de estimacao do imperador. Nos identificadores do codigo ela e 'coco' sem acento (texturas coco0..7, cocoR0..7, cr_* robo grande, cn_* normal grande; BOSSES.coco; desenhaCoco). Branca, com uma coroinha. Foge sempre um pouco a frente, cacareja 'CO CO!' e bota ovos dourados de susto. Nunca e alcancada: no fim de cada fase ela escapa de novo, rindo. No fim da fase 7 o Samurai Robo prende um DISPOSITIVO no pescoco dela e ela vira a GALINHA ROBO (corpo de chapas de aco, olho de LED, antena na coroa) - e assim que ela foge nas fases 8 e 9 e e o chefe final da fase 10. Sem o dispositivo, volta a ser a Cócó de sempre... e, na cena depois dos creditos, pula na mesa do jantar dos tratadores, ve o frango assado e foge de novo.",
       "o_imperador": "Aparece so na Perseguicao, bravo, empurrando a guarda imperial que avanca pela tela. Ser alcancado por ela e perder o emprego, nao morrer."
     }
   },
@@ -268,8 +281,8 @@
       {
         "id": "samurai",
         "nome": "SAMURAI ROBO",
-        "fase": 5,
-        "onde": "arena no fim do telhado da Ventania (colunas 100-129); a luta comeca ao entrar nela e a camera trava",
+        "fase": 7,
+        "onde": "arena no fim do telhado da Ronda (colunas 92-121); a luta comeca ao entrar nela e a camera trava. A Cócó cisca num telhado distante (colunas 127-141), onde o dispositivo a alcanca",
         "descricao": "Maquina de guerra com armadura de samurai: capacete de aco com laminas douradas, visor de LED vermelho, grade de alto-falante na boca, ombreiras e peito laqueados de vermelho, reator aceso no peito, juntas parafusadas, mochila com dois escapamentos e katana de plasma.",
         "folego": 6,
         "hud": "barra de vida com retrato e marcas de fase",
@@ -289,8 +302,8 @@
       {
         "id": "guarda",
         "nome": "O GIGANTE REAL",
-        "fase": 7,
-        "onde": "arena-surpresa no fim da Ronda (colunas 92-121), em volta do estandarte",
+        "fase": 4,
+        "onde": "arena-surpresa no fim do Olho de Gato (colunas 82-111), em volta do estandarte",
         "descricao": "O guardao imperial de sempre (farda vermelha, chapeu jingasa, bigodao). A fase parece terminar no estandarte; quando o jogador o toca, aparece 'FASE CONCLUIDA!', o telhado treme e ele cai do ceu gritando 'ACHOU QUE TINHA ACABADO, NE? ME DA A GALINHAAA!!!!'.",
         "folego": 3,
         "rotulo_hud": "FOLEGO DO GIGANTE REAL",
@@ -355,14 +368,14 @@
       "FANTASMA_OFF_ms": { "valor": 1400, "o_que_e": "tempo com ela sumida" },
       "FANTASMA_AVISO_ms": { "valor": 500, "o_que_e": "piscada antes de SUMIR (nao ha aviso antes de voltar)" },
       "ESCORREGA": { "valor": 1040, "o_que_e": "empurrao por segundo da telha escorregadia, sempre para a DIREITA" },
-      "VENTO": { "valor": 1500, "o_que_e": "empurrao para cima da corrente de ar" },
-      "VENTO_MAX": { "valor": -290, "o_que_e": "velocidade maxima de subida no vento" }
+      "VENTO": { "valor": 3600, "o_que_e": "empurrao para cima da corrente de ar. PRECISA ser maior que a gravidade (1900): com 1500 ela so freava a queda e ninguem subia" },
+      "VENTO_MAX": { "valor": -320, "o_que_e": "velocidade maxima de subida no vento; quem sai pelo topo ainda sobe ~1 bloco e fica boiando ali" }
     }
   },
   "mapas": {
     "formato": "ASCII desenhado a mao. Cada caractere e um bloco de 32x32 px. Linhas curtas sao completadas com '.' pelo carregador, entao da para editar sem contar colunas. Todas as fases tem 17 linhas de altura.",
     "legenda": {
-      "#": "telhado solido",
+      "#": "telhado solido. Na Campanha, um trecho de 1 bloco de altura solto no ar (nada firme em cima nem embaixo, com chao mais abaixo) vira PLATAFORMA DE PASSAGEM: sobe pulando por baixo e desce com BAIXO (achaPlataformas)",
       "^": "telha quebrada (derruba ao toque)",
       "L": "buraco no telhado",
       "o": "ovo dourado (100 pontos)",
@@ -370,16 +383,16 @@
       "P": "nascimento do jogador",
       "F": "estandarte de chegada (fim da fase)",
       "C": "lanterna/checkpoint - ATENCAO: vira o ponto de renascimento, entao nunca pode ficar sobre um buraco",
-      "-": "tabua ao vento (plataforma movel horizontal)",
-      "|": "tabua ao vento (plataforma movel vertical)",
+      "-": "tabua ao vento (plataforma movel horizontal; BAIXO em cima dela desce)",
+      "|": "tabua ao vento (plataforma movel vertical; BAIXO em cima dela desce)",
       "T": "trampolim (super-pulo) - precisa de ceu aberto acima, senao bate a cabeca",
       "Q": "telha rachada que cede e cai",
       "B": "caixa empurravel",
       "X": "lugar onde o CHEFE aparece (so em fases de chefe; a fase vira uma arena fechada)",
       "D": "telha fantasma (aparece e some no ritmo, piscando antes de sumir)",
       ":": "telha trincada (so o DASH ou o PISAO derrubam; atras dela costuma ter atalho ou segredo)",
-      "A": "telha escorregadia (empurra quem esta em cima, para a direita)",
-      "~": "corrente de ar (sopro que leva para o alto)",
+      "A": "telha escorregadia (empurra quem esta em cima, para a direita) - nunca coloque mato logo depois dela (ha um autoteste para isso)",
+      "~": "corrente de ar (sopro que leva para o alto e devolve o dash). Use colunas de 2 blocos de largura; esticar ate perto do fundo faz ela pegar quem caiu",
       "E": "gato de telhado",
       "V": "corvo",
       "G": "guarda patrulheiro",
@@ -397,7 +410,7 @@
   "fases": {
     "quantidade": 10,
     "tipos": ["normal", "precisao", "velocidade", "sobrevivencia", "chefe"],
-    "progressao_de_clima": "Comeca no fim de tarde, amanhece, a noite cai, a tempestade da Ventania traz o Samurai Robo, segue a noite, a neve, a ultima corrida no fim de tarde e termina sob a lua cheia.",
+    "progressao_de_clima": "Comeca no fim de tarde, amanhece, a noite cai (e o Gigante Real aparece de surpresa no Olho de Gato), vem a tempestade da Ventania, de novo a noite (os corvos e a Ronda, que termina com o Samurai Robo), a neve, a ultima corrida no fim de tarde e termina sob a lua cheia. Depois dos creditos, o jardim ao por do sol.",
     "lista": [
       {
         "n": 1,
@@ -419,34 +432,35 @@
         "nome": "OLHO DE GATO",
         "tipo": "normal",
         "cenario": "noite",
-        "ensina": "primeiros bichos e a telha trincada"
+        "tamanho": "112x17",
+        "ensina": "primeiros bichos e a telha trincada",
+        "chefe_no_fim": "guarda (surpresa no estandarte)"
       },
       {
         "n": 5,
         "nome": "VENTANIA",
         "tipo": "normal",
         "cenario": "tempestade",
-        "tamanho": "150x17",
-        "ensina": "tabuas moveis e corrente de ar",
-        "chefe_no_fim": "samurai"
+        "tamanho": "100x17",
+        "ensina": "tabuas moveis e corrente de ar"
       },
       {
         "n": 6,
         "nome": "BANDO DE CORVOS",
         "tipo": "precisao",
         "cenario": "noite",
-        "ensina": "telhas fantasma e corvos (a Cócó ja e robo)"
+        "ensina": "telhas fantasma e corvos"
       },
       {
         "n": 7,
         "nome": "A RONDA",
         "tipo": "normal",
         "cenario": "noite",
-        "tamanho": "122x17",
+        "tamanho": "142x17",
         "ensina": "guardas que perseguem, caixas e paredes trincadas",
-        "chefe_no_fim": "guarda (surpresa no estandarte)"
+        "chefe_no_fim": "samurai (a Cócó vira robo no fim)"
       },
-      { "n": 8, "nome": "O TELHADO QUE SOME", "tipo": "sobrevivencia", "cenario": "neve", "limite_ms": 88000 },
+      { "n": 8, "nome": "O TELHADO QUE SOME", "tipo": "sobrevivencia", "cenario": "neve", "limite_ms": 88000, "nota": "a Cócó ja e robo" },
       { "n": 9, "nome": "PERSEGUICAO FINAL", "tipo": "velocidade", "cenario": "tarde" },
       {
         "n": 10,
@@ -458,13 +472,13 @@
         "final": true
       }
     ],
-    "progressao": "Cada fase abre com um cartao (numero, nome e a NOVIDADE que traz) e a tela de resultado mostra 'A SEGUIR' com a proxima fase - chefe ainda nao enfrentado aparece so como silhueta. A surpresa da fase 7 nao aparece em lugar nenhum antes (nem etiqueta de chefe na lista de fases)."
+    "progressao": "Cada fase abre com um cartao (numero, nome e a NOVIDADE que traz) e a tela de resultado mostra 'A SEGUIR' com a proxima fase - chefe ainda nao enfrentado aparece so como silhueta. A surpresa da fase 4 nao aparece em lugar nenhum antes (nem etiqueta de chefe na lista de fases)."
   },
   "modos_de_jogo": [
     {
       "id": "campanha",
       "nome": "CAMPANHA",
-      "desc": "10 fases e 3 chefes (o Samurai Robo no fim da fase 5, o Gigante Real de surpresa no fim da 7 e a Galinha Robo na 10), com pontuacao, estrelas, desafios e cutscenes."
+      "desc": "10 fases e 3 chefes (o Gigante Real de surpresa no fim da fase 4, o Samurai Robo no fim da 7 e a Galinha Robo na 10), com pontuacao, estrelas, desafios e cutscenes. Depois do chefe final vem os creditos e a cena depois deles."
     },
     {
       "id": "diario",
@@ -506,7 +520,8 @@
       { "id": "robo", "bpm": 156, "clima": "o cacarejo virou um arpejo de maquina" },
       { "id": "robo2", "bpm": 176, "clima": "fases III e IV da Galinha Robo" },
       { "id": "alivio", "bpm": 76, "clima": "tom maior: o dispositivo saiu" },
-      { "id": "final", "bpm": 96, "clima": "leve e quentinha: finalmente acabou" }
+      { "id": "final", "bpm": 96, "clima": "leve e quentinha: finalmente acabou (e os creditos)" },
+      { "id": "sakura", "bpm": 76, "clima": "escala japonesa bem calma: o jantar no jardim depois dos creditos" }
     ],
     "campos_opcionais_das_faixas": "oitava, oitBaixo e tambor (16 passos: T = taiko, x = chiado). Sem eles a faixa toca como as antigas.",
     "escala": "Pentatonica - e o que da o sabor japones sem precisar de instrumento nenhum.",
@@ -526,6 +541,7 @@
       "jogador_2": { "esq": "A", "dir": "D", "pulo": "W", "baixo": "S", "dash": "L ou K", "hab": "J" }
     },
     "atalhos_fixos": { "pausa": "P ou Esc", "som": "M", "tela_cheia": "F", "confirmar": "Enter" },
+    "modo_admin": "CTRL+M abre a caixinha do codigo; digitar 67 liga (de novo, desliga). Ligado, na Campanha: nada derruba (mato, bichos e chefes nao contam; quem cai num buraco volta ao ultimo telhado firme, sem contar queda), pulo infinito no ar, dash/pirueta/habilidade sempre prontos, sem limite de tempo, todas as fases abertas e toda cutscene pulavel com ENTER. Durante a fase, tecla 1 tira um pedaco da vida (um folego) do chefe e tecla 2 passa direto: derrota o chefe na hora (com a cutscene dele) ou, sem chefe na luta, conclui a fase. Fica salvo no navegador (localStorage 'cadeAGalinha.admin') e um selo ADMIN aparece no canto da tela. O progresso feito com ele ligado conta normalmente.",
     "remapeamento": "Todas as 6 acoes sao remapeaveis por jogador, com deteccao de conflito (tecla ja usada pelo outro jogador, pela mesma acao ou por um atalho fixo).",
     "toque": {
       "quando_aparece": "No primeiro toque de verdade. Some de novo se alguem usar o teclado, entao no PC nada muda.",
@@ -535,7 +551,7 @@
     }
   },
   "arquitetura": {
-    "cenas_phaser": ["BootScene", "MenuScene", "CampaignScene", "RaceScene", "GameOverScene"],
+    "cenas_phaser": ["BootScene", "MenuScene", "CampaignScene", "RaceScene", "GameOverScene", "FimScene"],
     "boot": "Desenha TODA a arte do jogo em canvas e registra as animacoes. Nada e carregado de disco.",
     "onde_mexer_em_cada_coisa": {
       "FIS / ELEM / HAB / PERFIS": "numeros de fisica, elementos e habilidades",
@@ -550,10 +566,11 @@
     "inimigos_sem_corpo_de_fisica": "Bichos e chefes NAO usam corpo de fisica: cada um e um sprite mais um retangulo conferido a mao por quadro. Isso mantem a fisica do jogador intocada e deixa o comportamento explicito.",
     "forcas_de_fora": "Trampolim, quique de chefe e telha escorregadia sao aplicados DEPOIS da fisica do jogador, no update da fase, para nada sobrescrever. As constantes de FIS nunca mudam.",
     "save": "localStorage, com chave fixa e numero de versao proprio. Toda versao nova sabe migrar a anterior; nada e apagado sem o jogador pedir.",
-    "autoteste": "runGameTests() no console do navegador confere save, migracao, controles, pontuacao, desafios, progressao, mapas, chefes, arenas, roteiro das cutscenes e faixas. Sao 35 testes. Abrir a pagina com ?teste na URL expoe window.__dbg para inspecao externa.",
+    "autoteste": "runGameTests() no console do navegador confere save, migracao, controles, pontuacao, desafios, progressao, mapas, chefes, arenas, roteiro das cutscenes e faixas, se a arte e a musica do fim existem, se o vento vence a gravidade, as plataformas de passagem, se nenhuma telha escorregadia joga no mato e o codigo do modo admin. Sao 40 testes. Abrir a pagina com ?teste na URL expoe window.__dbg para inspecao externa.",
     "cutscenes": "Roteiro (sequenciador de passos: ms, ini, passo, ate) rodando no update da fase - a pausa congela tudo. Cinema desenha as faixas pretas, os cartoes de titulo e as falas, presos na tela mesmo com zoom de camera. A primeira vez cada cutscene e obrigatoria; depois ENTER pula (Save.d.cenas).",
     "save_v5": "VERSAO_SAVE 5: a campanha passou de 12/13 para 10 fases. MIGRA_FASES_V5 leva o progresso de cada fase antiga para o numero novo (a Corrida no Beiral, a arena do guardao e o Capitao sairam); o que estava aberto continua aberto, e quem tinha terminado a ultima fase antiga ganha o chefe final aberto.",
-    "arenas": "FASES[i].arena = { boss, c0, c1, gatilho }: gatilho 'entrada' (a luta comeca ao entrar, Ventania) ou 'bandeira' (a luta comeca ao tocar o estandarte, Ronda). A arena tem a largura exata da tela (30 colunas)."
+    "arenas": "FASES[i].arena = { boss, c0, c1, gatilho, coco }: gatilho 'entrada' (a luta comeca ao entrar, Ronda/Samurai) ou 'bandeira' (a luta comeca ao tocar o estandarte, Olho de Gato/Gigante). 'coco' diz onde a Cócó cisca, longe, durante a luta do Samurai. A arena tem a largura exata da tela (30 colunas). FASE_SAMURAI diz depois de qual fase ela foge como robo.",
+    "fim_de_jogo": "FimScene: depois do chefe final (fora do Desafio do Dia) os creditos sobem (ENTER/OK pula) e vem a cena pos-creditos: Koburo e Tobias jantando um frango assado numa mesinha baixa, numa varanda de madeira de frente para um jardim japones (Fuji com o sol se pondo, cerejeiras, torii, lanterna de pedra, cascalho rastelado, varal de lanternas de papel e petalas caindo). Uns 4 segundos depois a Cócó pula na mesa, ve o frango, se assusta e foge de novo; os dois saem correndo atras - 'FIM...?'. Depois segue para o resumo da campanha. A primeira vez e obrigatoria (Save.d.cenas.posCreditos); depois ENTER pula. A pose 'come' dos tratadores (p1_come0/1, p2_come0/1) so existe para esta cena."
   },
   "convencoes_para_quem_for_mexer": [
     "Tudo continua em UM arquivo: nada de assets externos, nada de build.",

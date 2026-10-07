@@ -259,6 +259,29 @@
     padding: 40px; line-height: 2; font-size: 13px;
   }
   #erro b { color: #ffcd75; }
+
+  /* modo admin: a caixinha do codigo (CTRL+M) e o selo de "ligado" */
+  #admin-caixa {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    z-index: 70; display: none; flex-direction: column; align-items: center; gap: 10px;
+    padding: 18px 28px; background: #1a1c2c; border: 2px solid #ffcd75;
+    color: #f4f4f4; font-size: 12px; letter-spacing: 1px; text-align: center;
+    box-shadow: 0 6px 0 #0d0e17;
+  }
+  #admin-caixa.aberta { display: flex; }
+  #admin-caixa b { color: #ffcd75; font-size: 15px; }
+  #admin-cod { font-size: 22px; color: #73eff7; letter-spacing: 6px; }
+  #admin-selo {                         /* canto de baixo, longe do HUD e dos rodapes */
+    position: fixed; right: 8px; bottom: 6px;
+    z-index: 65; display: none; pointer-events: none;
+    padding: 3px 8px; background: #b13e53; color: #f4f4f4; font-size: 10px; letter-spacing: 2px;
+  }
+  #admin-selo.ligado { display: block; }
+  #admin-selo span { letter-spacing: 1px; }
+  /* no celular o canto de baixo e dos botoes de toque: o selo sobe (e sem
+     teclado os comandos 1 e 2 nao valem, entao so o nome aparece) */
+  body.toque #admin-selo { bottom: auto; top: 4px; right: 50%; transform: translateX(50%); }
+  body.toque #admin-selo span { display: none; }
 </style>
 </head>
 <body>
@@ -273,6 +296,13 @@
 </div>
 
 <div id="jogo"></div>
+<!-- Modo admin (CTRL+M e o codigo): a caixinha do codigo e o selo "ADMIN" -->
+<div id="admin-caixa" aria-live="polite">
+  <b>MODO ADMIN</b>
+  <span id="admin-msg">DIGITE O CÓDIGO</span>
+  <span id="admin-cod">_ _</span>
+</div>
+<div id="admin-selo"><b>ADMIN</b><span>&nbsp;&nbsp; 1: TIRA VIDA DO CHEFE &nbsp;&nbsp; 2: PASSA DIRETO</span></div>
 <div id="erro">
   <div>
     <b>CADÊ A GALINHA?!</b><br><br>
@@ -401,10 +431,10 @@ if (!window.Phaser) {
 //
 //  MODOS
 //    CAMPANHA        10 fases, 3 chefes, com pontuacao, estrelas e desafios.
-//                    A fase 5 termina na luta com o SAMURAI ROBO, que lanca
-//                    um dispositivo e transforma a Cócó em robo; a fase 7
-//                    acaba com o GIGANTE REAL de surpresa; a 10 e a GALINHA
-//                    ROBO, e no fim o tratador arranca o dispositivo.
+//                    A fase 4 acaba com o GIGANTE REAL de surpresa; a 7
+//                    termina na luta com o SAMURAI ROBO, que lanca um
+//                    dispositivo e transforma a Cócó em robo; a 10 e a
+//                    GALINHA ROBO, e no fim o tratador arranca o dispositivo.
 //    DESAFIO DO DIA  um objetivo novo por dia, sorteado pela data
 //    MODO INFINITO   telhado sem fim, sozinho, correndo da guarda imperial
 //    PERSEGUICAO     2 jogadores no mesmo teclado, tela dividida
@@ -428,6 +458,7 @@ if (!window.Phaser) {
 //    FX / Aura / AMBIENTES ...... particulas, brilhos, aura e clima das fases
 //    Cinema / Roteiro ........... faixas de cinema e o sequenciador das cutscenes
 //    CampaignScene: roteiro*() .. as cutscenes (Samurai, dispositivo, Gigante, final)
+//    FimScene ..................... os creditos e a cena depois deles
 // ============================================================================
 
 var LARG = 960, ALT = 540;      // resolucao base
@@ -500,8 +531,10 @@ var ELEM = {
   FANTASMA_AVISO: 500, // ms de piscada antes de sumir
   ESCORREGA: 1040,     // empurrao por segundo da telha escorregadia (sempre
                        // para a DIREITA: as fases correm nesse sentido)
-  VENTO: 1500,         // empurrao para cima da corrente de ar (px/s2)
-  VENTO_MAX: -290      // velocidade maxima de subida no vento
+  VENTO: 3600,         // empurrao para cima da corrente de ar (px/s2). PRECISA
+                       // ser maior que FIS.GRAV (1900): com 1500 ela so freava
+                       // a queda e ninguem subia
+  VENTO_MAX: -320      // velocidade maxima de subida no vento
 };
 
 // ---- Habilidades: numeros de balanceamento dos dois personagens ------------
@@ -808,6 +841,10 @@ var SOM = {
   // a Cócó de volta ao normal, cansada e confusa: "co...? co?"
   cacarejoFraco: function () { this.tom(560, 0.08, 'square', 0.04, 500); this.tom(600, 0.24, 'square', 0.045, 780, 0.28); },
   // fanfarra do fim do jogo
+  // a cena depois dos creditos: a mordida, o grito de susto da Cócó e o "tan-tan-taaan"
+  nhac:          function () { this.ruido(0.05, 0.04, 1600); this.tom(260, 0.06, 'square', 0.03, 180, 0.02); },
+  cacarejoSusto: function () { this.tom(900, 0.07, 'square', 0.07, 1300); this.tom(1250, 0.32, 'square', 0.075, 640, 0.08); },
+  revelacao:     function () { this.tom(196, 0.22, 'sawtooth', 0.06, 194); this.tom(185, 0.22, 'sawtooth', 0.06, 183, 0.28); this.tom(147, 1.1, 'sawtooth', 0.07, 104, 0.56); },
   vitoriaFinal:  function () { var f = [523, 659, 784, 1046, 784, 1046, 1318, 1568], i; for (i = 0; i < f.length; i++) this.tom(f[i], 0.22, 'square', 0.08, null, i * 0.13); this.tom(262, 1.2, 'triangle', 0.08, null, 0.9); },
 
   // ---- percussao da trilha (vai pelo barramento da MUSICA) ------------------
@@ -925,7 +962,13 @@ var FAIXAS = {
               baixo:  ['C', null, 'A', null, 'F', null, 'G', null],
               melodia:['C', 'E', 'G', 'A', 'G', 'E', 'D', null,
                        'E', 'G', 'A', 'C', 'B', 'A', 'G', null],
-              tambor: '....x.......x...', volTambor: 0.03 }
+              tambor: '....x.......x...', volTambor: 0.03 },
+  // jantar no jardim (depois dos creditos): escala japonesa, bem calma
+  sakura:   { bpm: 76, onda: 'triangle', baixoOnda: 'sine', vol: 0.05, volBaixo: 0.065,
+              baixo:  ['A', null, 'E', null, 'F', null, 'E', null],
+              melodia:['E', 'F', 'A', null, 'B', null, 'A', 'F',
+                       'E', null, 'B', 'A', 'B', 'A', 'F', null],
+              tambor: '........x.......', volTambor: 0.02 }
 };
 
 var MUSICA = {
@@ -1454,30 +1497,25 @@ var MAPAS = {
       '##############################...#################################...#######################',
       '##############################LLL#################################LLL#######################'
   ],
-  // FASE 5 - VENTANIA + ARENA DO SAMURAI ROBO  (150 x 17)
-  // As 100 primeiras colunas sao a Ventania de sempre (o estandarte saiu:
-  // a fase agora termina na luta). Colunas 100-129: a arena do Samurai, da
-  // largura exata da tela (a camera trava nela), com duas tabuas fixas para
-  // fugir dos cortes baixos. Colunas 135-149: o telhado distante onde a Cócó
-  // cisca sem saber de nada - so a camera chega la, na cena depois da luta.
+  // FASE 5 - VENTANIA  (100 x 17)
   MAPA_4: [
-      '......................................................................................................................................................',
-      '......................................................................................................................................................',
-      '......................................................................................................................................................',
-      '......................................................................................................................................................',
-      '..................................................................so..~~..............................................................................',
-      '..................................................o.o.o..........####.~~..............................................................................',
-      '................................................#########.............~~..............................................................................',
-      '......................................................................~~..............................................................................',
-      '......................................................................~~..............................................................................',
-      '.........................o.o..........................................~~.................................oo................oo.........................',
-      '........................#####.........................................~~................................####..............####........................',
-      '................ooo.................----..........||||..........ooo...~~...............................................................###############',
-      '..P.....................^^....................C.^.......^^............~~..^^^...........^.............C.................X..............###############',
-      '##############.......#############............################.......#############################################################.....###############',
-      '##############.......#############............################.......#############################################################.....###############',
-      '##############.......#############............################.......#############################################################.....###############',
-      '##############.......#############............################.......#############################################################.....###############'
+      '....................................................................................................',
+      '....................................................................................................',
+      '....................................................................................................',
+      '....................................................................................................',
+      '..................................................................so..~~............................',
+      '..................................................o.o.o..........####.~~............................',
+      '................................................#########.............~~............................',
+      '......................................................................~~............................',
+      '......................................................................~~............................',
+      '.........................o.o..........................................~~............................',
+      '........................#####.........................................~~............................',
+      '................ooo.................----..........||||..........ooo...~~............................',
+      '..P.....................^^....................C.^.......^^............~~..^^^...........^.......F...',
+      '##############.......#############............################.......###############################',
+      '##############.......#############............################.......###############################',
+      '##############.......#############............################.......###############################',
+      '##############.......#############............################.......###############################'
   ],
   // FASE 6  (140 x 17)
   MAPA_5: [
@@ -1493,32 +1531,34 @@ var MAPAS = {
       '......................oo.............oo................o.o.........................o.o...................................o.o................',
       '.....................####...........####..............#####.......................#####.................................#####...............',
       '..............ooo............ooo............ooo..................----..----..................ooo..............ooo...........................',
-      '..P..................^^...........E.^^...........C....^^....^^...................^^^..............C.....^^..............^^......^......F....',
-      '############.......#A##AAAA.......########.......##############..............##############.......#AAAA#####.......#########################',
+      '..P....................................E.........C....^^.........................^^^..............C.....................^^......^......F....',
+      '############.......##AAAA##.......########.......##############..............##############.......#AAAA#####.......#########################',
       '############.......########.......########.......##############..............##############.......##########.......#########################',
       '############.......########.......########.......##############..............##############.......##########.......#########################',
       '############.......########.......########.......##############..............##############.......##########.......#########################'
   ],
 
-  // ---- MAPA_GATOS ----
+  // ---- MAPA_GATOS (112 x 17) ----
+  // As colunas 82-111 sao a arena do GIGANTE REAL: parece um fim de fase
+  // comum, ate o jogador tocar o estandarte (veja FASES[3].arena).
   MAPA_GATOS: [
-      '................................................................................................',
-      '................................................................................................',
-      '................................................................................................',
-      '.....................................s..........................................................',
-      '....................................####........................................................',
-      '.........................................................o.o.o..................................',
-      '........................................................########................................',
-      '...............................o.oT......................................o.o....................',
-      '..............................######....................................######..................',
-      '.............o.o...................................o.o....::....................................',
-      '............######................................######..::....................................',
-      '..........................................................::....................................',
-      '..P..o..E.......o...........o.E................o....E...oT::o........C....o...........E....F....',
-      '####################....################....####################....##########....##############',
-      '####################....################....####################....##########....##############',
-      '####################....################....####################....##########....##############',
-      '####################LLLL################LLLL####################LLLL##########LLLL##############'
+      '................................................................................................................',
+      '................................................................................................................',
+      '................................................................................................................',
+      '.....................................s..........................................................................',
+      '....................................####........................................................................',
+      '.........................................................o.o.o..................................................',
+      '........................................................########................................................',
+      '...............................o.oT......................................o.o....................................',
+      '..............................######....................................######..................................',
+      '.............o.o...................................o.o....::....................................................',
+      '............######................................######..::....................................................',
+      '..........................................................::....................................................',
+      '..P..o..E.......o...........o.E................o....E...oT::o........C....o.........C......F..............X.....',
+      '####################....################....####################....##########....##############################',
+      '####################....################....####################....##########....##############################',
+      '####################....################....####################....##########....##############################',
+      '####################LLLL################LLLL####################LLLL##########LLLL##############################'
   ],
   // ---- MAPA_CORVOS ----
   MAPA_CORVOS: [
@@ -1540,27 +1580,28 @@ var MAPAS = {
       '##################........########......########......########......########......######################',
       '##################LLLLLLLL########LLLLLL########LLLLLL########LLLLLL########LLLLLL######################'
   ],
-  // ---- MAPA_RONDA (122 x 17) ----
-  // As colunas 92-121 sao a arena do GIGANTE REAL: parece um fim de fase
-  // comum, ate o jogador tocar o estandarte (veja FASES[6].arena).
+  // ---- MAPA_RONDA (142 x 17) ----
+  // As colunas 92-121 sao a arena do SAMURAI ROBO (a luta comeca ao entrar
+  // nela). Colunas 127-141: o telhado distante onde a Cócó cisca sem saber
+  // de nada - so a camera chega la, na cena depois da luta.
   MAPA_RONDA: [
-      '..........................................................................................................................',
-      '..........................................................................................................................',
-      '..........................................................................................................................',
-      '..........................................................................................................................',
-      '..........................................................................................................................',
-      '..........................................................................................................................',
-      '..............................................................................o.o.o.......................................',
-      '............................................................................##########....................................',
-      '.................o.o...............................o.o....................................................................',
-      '................######............................######........................::........................................',
-      '................................................................................::........................................',
-      '................................................................................::........................................',
-      '..P...o...G...o...B.....E...o.........o.C...o.G.....B...E...o.........o.T...G...::oso.........C...o..o...F...........X....',
-      '##############################......##########################......##################......##############################',
-      '##############################......##########################......##################......##############################',
-      '##############################......##########################......##################......##############################',
-      '##############################LLLLLL##########################LLLLLL##################LLLLLL##############################'
+      '..............................................................................................................................................',
+      '..............................................................................................................................................',
+      '..............................................................................................................................................',
+      '..............................................................................................................................................',
+      '..............................................................................................................................................',
+      '..............................................................................................................................................',
+      '..............................................................................o.o.o...........................................................',
+      '............................................................................##########........................................................',
+      '.................o.o...............................o.o........................................................................................',
+      '................######............................######........................::...............oo...............oo..........................',
+      '................................................................................::..............####.............####.........................',
+      '................................................................................::.............................................###############',
+      '..P...o.....G.o...B.....E...o.........o.C...o.G.....B...E...o.........o..G...T..::oso.........C...o..o...............X.........###############',
+      '##############################......##########################......##################......##############################.....###############',
+      '##############################......##########################......##################......##############################.....###############',
+      '##############################......##########################......##################......##############################.....###############',
+      '##############################LLLLLL##########################LLLLLL##################LLLLLL##############################.....###############'
   ],
   // ---- MAPA_SOME ----
   MAPA_SOME: [
@@ -1572,15 +1613,15 @@ var MAPAS = {
       '..................................................####..~~......................................................',
       '........................................................~~......................................................',
       '........................................................~~......................................................',
-      '......................................V.................~~........V.............................................',
-      '............................~.............~.............~~............~.............~...........................',
-      '............................~.............~.............~~............~.............~...........................',
-      '...................o..o.....~....o..o.....~....o.C..o...~~...o..o.....~....o.C..o...~....o..o...................',
-      '..P...o...o.......DDDDDDDD..~...DDDDDDDD..~...DDD##DDD..~~..DDDDDDDD..~...DDD##DDD..~...DDDDDD........o....F....',
-      '##############....................................................................................##############',
-      '##############....................................................................................##############',
-      '##############....................................................................................##############',
-      '##############LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL##############'
+      '....................................V...................~~......V...............................................',
+      '............................~~............~~............~~............~~............~~..........................',
+      '............................~~............~~............~~............~~............~~..........................',
+      '...................o..o.....~~...o..o.....~~...o.C..o...~~...o..o.....~~...o.C..o...~~...o..o...................',
+      '..P...o...o.......DDDDDDDD..~~..DDDDDDDD..~~..DDD##DDD..~~..DDDDDDDD..~~..DDD##DDD..~~..DDDDDD........o....F....',
+      '###############.............~~............~~............~~............~~............~~............##############',
+      '###############.............~~............~~............~~............~~............~~............##############',
+      '###############.............~~............~~............~~............~~............~~............##############',
+      '###############LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL##############'
   ],
   // ---- MAPA_BOSS3: a arena da GALINHA ROBO (chefe final) ----
   // O "####" la no alto e o poleiro de onde ela encara o jogador na entrada
@@ -1635,48 +1676,49 @@ var FASES = [
     dica: 'MATO DERRUBA      TELHA RACHADA CEDE: NÃO PARE!',
     novidade: 'NOVIDADE: TELHAS RACHADAS QUE CEDEM', icone: 'quebradica' },
 
-  // --- 4. primeiros bichos e a primeira parede que pede habilidade ---
+  // --- 4. primeiros bichos e a primeira parede que pede habilidade. Parece
+  //        uma fase comum ate o estandarte: ao toca-lo (gatilho 'bandeira') o
+  //        GIGANTE REAL cai do ceu na arena das colunas 82-111. "arena" diz
+  //        onde ela fica e o que dispara a luta.
   { nome: 'OLHO DE GATO', mapa: MAPAS.MAPA_GATOS, tipo: 'normal', cenario: 'noite',
     dica: 'PULE NA CABEÇA DO GATO      {dash} OU {baixo} NO AR QUEBRAM A TELHA TRINCADA',
+    arena: { boss: 'guarda', c0: 82, c1: 112, gatilho: 'bandeira' },
+    alvoTempo: 90000,
     desafios: ['tudo', 'limpo', 'segredo'],
     novidade: 'NOVIDADE: GATOS DE TELHADO E TELHAS TRINCADAS', icone: 'gato0' },
 
-  // --- 5. plataformas moveis, checkpoint e a corrente de ar... e, no fim do
-  //        telhado, a arena do SAMURAI ROBO. "arena" diz onde ela fica
-  //        (colunas), o que dispara a luta (gatilho: 'entrada' = entrar nela)
-  //        e onde a Cócó esta ciscando, longe. A fase termina quando a cena
-  //        depois da luta acaba - nao ha estandarte.
+  // --- 5. plataformas moveis, checkpoint e a corrente de ar ---
   { nome: 'VENTANIA', mapa: MAPAS.MAPA_4, tipo: 'normal', cenario: 'tempestade',
     dica: 'TÁBUAS AO VENTO TE CARREGAM      A CORRENTE DE AR LEVA PARA O ALTO',
     moverH: { alcance: 224, vel: 80 }, moverV: { alcance: 160, vel: 70 },
-    arena: { boss: 'samurai', c0: 100, c1: 130, gatilho: 'entrada', coco: { c: 142, l: 11 } },
-    alvoTempo: 120000,
     desafios: ['tudo', 'limpo', 'segredo'],
-    novidade: 'TÁBUAS AO VENTO E CORRENTES DE AR... E ALGO DE METAL NO FIM DO TELHADO',
-    icone: 'sr_parado0', ameaca: true },
+    novidade: 'NOVIDADE: TÁBUAS AO VENTO E CORRENTES DE AR', icone: 'tabua' },
 
   // --- 6. fase de PRECISAO: pontes que somem e corvos no caminho ---
   { nome: 'BANDO DE CORVOS', mapa: MAPAS.MAPA_CORVOS, tipo: 'precisao', cenario: 'noite',
     dica: 'A TELHA FANTASMA PISCA ANTES DE SUMIR      CUIDADO COM OS CORVOS',
     desafios: ['tudo', 'limpo', 'segredo'],
-    novidade: 'A CÓCÓ VIROU ROBÔ! SIGA ELA ENTRE TELHAS FANTASMA E CORVOS', icone: 'corvo0' },
+    novidade: 'NOVIDADE: TELHAS FANTASMA E CORVOS NO CAMINHO', icone: 'corvo0' },
 
-  // --- 7. a ronda: guardas que perseguem, caixas e paredes trincadas. Parece
-  //        uma fase comum ate o estandarte: ao toca-lo (gatilho 'bandeira') o
-  //        GIGANTE REAL cai do ceu na arena das colunas 92-121.
+  // --- 7. a ronda: guardas que perseguem, caixas e paredes trincadas... e,
+  //        no fim do telhado, a arena do SAMURAI ROBO (gatilho 'entrada': a
+  //        luta comeca ao entrar nela). "coco" diz onde a Cócó esta ciscando,
+  //        longe. A fase termina quando a cena depois da luta acaba - nao ha
+  //        estandarte.
   { nome: 'A RONDA', mapa: MAPAS.MAPA_RONDA, tipo: 'normal', cenario: 'noite',
     dica: 'O GUARDA CORRE ATRÁS SE TE VIR      {hab} RESOLVE QUANDO APERTA',
-    arena: { boss: 'guarda', c0: 92, c1: 122, gatilho: 'bandeira' },
-    alvoTempo: 100000,
+    arena: { boss: 'samurai', c0: 92, c1: 122, gatilho: 'entrada', coco: { c: 134, l: 11 } },
+    alvoTempo: 130000,
     desafios: ['tudo', 'segredo', 'hab'],
-    novidade: 'GUARDAS QUE CORREM ATRÁS DE VOCÊ', icone: 'guardinha2' },
+    novidade: 'GUARDAS QUE CORREM ATRÁS DE VOCÊ... E ALGO DE METAL NO FIM DA RONDA',
+    icone: 'sr_parado0', ameaca: true },
 
   // --- 8. SOBREVIVENCIA: quase nao ha telhado, so ritmo e vento ---
   { nome: 'O TELHADO QUE SOME', mapa: MAPAS.MAPA_SOME, tipo: 'sobrevivencia', cenario: 'neve',
     dica: 'NÃO PARE EM CIMA DA TELHA FANTASMA      O VENTO SALVA QUEM ERRA',
     limite: 88000, alvoTempo: 58000,
     desafios: ['limpo', 'rapido', 'segredo'],
-    novidade: 'SOBREVIVA: O TELHADO SOME DEBAIXO DOS PÉS', icone: 'fantasma_on' },
+    novidade: 'A CÓCÓ VIROU ROBÔ! E O TELHADO SOME DEBAIXO DOS PÉS', icone: 'fantasma_on' },
 
   // --- 9. tudo junto, no ritmo de perseguicao ---
   { nome: 'PERSEGUIÇÃO FINAL', mapa: MAPAS.MAPA_5, tipo: 'velocidade', cenario: 'tarde',
@@ -1695,9 +1737,9 @@ var FASES = [
     desafios: ['limpo', 'rapido', 'hab'],
     novidade: 'CHEFE FINAL: TIRE O DISPOSITIVO DA CÓCÓ', icone: 'cr_parado0', ameaca: true }
 ];
-// Fases depois da luta com o Samurai Robo: a Cócó foge transformada em robo
+// Fases depois da luta com o Samurai Robo (fim da Ronda, fase 7): a Cócó foge transformada em robo
 // (o dispositivo preso no pescoco, o olho de LED e o corpo de metal).
-var FASE_SAMURAI = 4;
+var FASE_SAMURAI = 6;
 function cocoRoboNa(i) { return i > FASE_SAMURAI; }
 // ============================================================================
 //  Completa os dados de cada fase lendo o proprio mapa. Assim, para criar uma
@@ -2095,6 +2137,34 @@ function braco(ctx, ombro, cotovelo, mao, esp, corManga) {
   rect(ctx, mao[0] - 2, mao[1] - 2, 4, 4, C.escuro);          // mao
   rect(ctx, mao[0] - 1, mao[1] - 1, 2, 2, C.pele);
 }
+// Braco com a coxinha de frango (a cena depois dos creditos). Desenhado por
+// cima da cabeca: com a mao na boca, a carne cobre a boca e o ossinho fica
+// para fora; com a mao baixa, a coxinha fica de pe esperando a mordida.
+function bracoComendo(ctx, ombro, mao, naBoca, esp, corManga) {
+  var mx = mao[0], my = mao[1], carne = '#c8742c', luz = '#f0b05a', osso = '#f4efe2';
+  if (naBoca) {
+    linhaGrossa(ctx, ombro, [ombro[0] + 4, ombro[1] + 5], esp + 2, C.escuro);
+    linhaGrossa(ctx, [ombro[0] + 4, ombro[1] + 5], mao, esp + 2, C.escuro);
+    linhaGrossa(ctx, ombro, [ombro[0] + 4, ombro[1] + 5], esp, corManga);
+    linhaGrossa(ctx, [ombro[0] + 4, ombro[1] + 5], mao, esp, corManga);
+    linhaGrossa(ctx, [mx + 1, my + 1], [mx + 5, my + 4], 3, C.escuro);   // osso para fora
+    linhaGrossa(ctx, [mx + 1, my + 1], [mx + 5, my + 4], 1, osso);
+    rect(ctx, mx + 4, my + 3, 3, 3, C.escuro); rect(ctx, mx + 5, my + 4, 1, 1, osso);
+    elipse(ctx, mx - 3, my - 1, 4, 3, C.escuro);                       // a carne, na boca
+    elipse(ctx, mx - 3, my - 1, 3, 2, carne);
+    rect(ctx, mx - 5, my - 2, 2, 1, luz);
+  } else {
+    linhaGrossa(ctx, ombro, mao, esp + 2, C.escuro);
+    linhaGrossa(ctx, ombro, mao, esp, corManga);
+    linhaGrossa(ctx, [mx, my + 1], [mx - 1, my + 4], 3, C.escuro);     // osso para baixo
+    linhaGrossa(ctx, [mx, my + 1], [mx - 1, my + 4], 1, osso);
+    elipse(ctx, mx + 1, my - 4, 3, 4, C.escuro);                       // a carne em pe
+    elipse(ctx, mx + 1, my - 4, 2, 3, carne);
+    rect(ctx, mx, my - 6, 1, 2, luz);
+  }
+  rect(ctx, mx - 2, my - 2, 4, 4, C.escuro);                           // a mao segurando
+  rect(ctx, mx - 1, my - 1, 2, 2, C.pele);
+}
 
 // Escolhe o desenho pelo tipo. o = { tipo, pose, cor, luz, sx, sy, base,
 // olhos, pes, ergue, braco, treme, rastro }
@@ -2127,6 +2197,8 @@ function desenhaKoburo(ctx, o) {
   } else if (o.pose === 'pula') {            // bracos para cima
     braco(ctx, oE, null, [cx - TW - 1, yT - 4], 3, o.cor);
     braco(ctx, oD, null, [cx + TW + 1, yT - 4], 3, o.cor);
+  } else if (o.pose === 'come') {            // comendo: a outra mao na cintura
+    braco(ctx, oE, [cx - TW - 3, yT + 5], [cx - TW + 1, yT + 8], 3, o.cor);
   } else {                                   // caindo: bracos abertos, se equilibrando
     braco(ctx, oE, null, [cx - TW - 5, yT + 1], 3, o.cor);
     braco(ctx, oD, null, [cx + TW + 5, yT + 1], 3, o.cor);
@@ -2143,6 +2215,8 @@ function desenhaKoburo(ctx, o) {
     rect(ctx, cx + 3 - k, yT + 3 + k, 1, 1, C.ui);
   }
   koburoCabeca(ctx, cx + 1, yT - 4, o);
+  // comendo: o braco da frente vem por cima de tudo, para a mao chegar a boca
+  if (o.pose === 'come') bracoComendo(ctx, oD, o.mao ? [cx + 10, yT - 2] : [cx + TW + 3, yT + 7], o.mao, 3, o.cor);
 }
 // cabeca do Koburo (virada para a direita; o jogo espelha quando ele anda
 // para a esquerda)
@@ -2232,6 +2306,8 @@ function desenhaTobias(ctx, o) {
   } else if (o.pose === 'pula') {            // bracos para cima: "AAAH!"
     braco(ctx, oE, null, [cx - TW - 1, yT - 8], 4, o.cor);
     braco(ctx, oD, null, [cx + TW + 1, yT - 8], 4, o.cor);
+  } else if (o.pose === 'come') {            // comendo: a outra manga caida
+    braco(ctx, oE, null, [cx - TW - 2, yT + 9], 4, o.cor);
   } else {                                   // caindo: bracos agitados
     braco(ctx, oE, null, [cx - TW - 6, yT - 3], 4, o.cor);
     braco(ctx, oD, null, [cx + TW + 6, yT - 5], 4, o.cor);
@@ -2247,6 +2323,7 @@ function desenhaTobias(ctx, o) {
     rect(ctx, cx + 2 - k, yT + 2 + k, 1, 1, C.ui);
   }
   tobiasCabeca(ctx, cx + 1, yT - 6, o, panico, false);
+  if (o.pose === 'come') bracoComendo(ctx, oD, o.mao ? [cx + 9, yT - 2] : [cx + TW + 4, yT + 8], o.mao, 4, o.cor);
 }
 // cabeca do Tobias. espetosTras = cabelo varrido para tras (no dash)
 function tobiasCabeca(ctx, hx, hy, o, panico, espetosTras) {
@@ -2349,6 +2426,9 @@ function geraPersonagem(cena, pre, cor, luz, tipo) {
   // mergulho/pisao: esticado para baixo, pes juntos e olhos no chao
   quadro('pisao0', { pose: 'pula', rw: 7,  rh: 13, base: 26, olhos: 'baixo', pes: [0, 0], ergue: [0, 0] });
   quadro('pisao1', { pose: 'pula', rw: 8,  rh: 12, base: 26, olhos: 'baixo', pes: [0, 0], ergue: [1, 1] });
+  // comendo (so na cena depois dos creditos): a coxinha na mao e na boca
+  quadro('come0', { pose: 'come', rw: 10, rh: 10, mao: 0 });
+  quadro('come1', { pose: 'come', rw: 10, rh: 10, mao: 1, olhos: 'piscando' });
 }
 
 // ---- A CÓCÓ: a galinha de estimacao do imperador ---------------------------
@@ -2770,6 +2850,13 @@ function geraArte(cena) {
       astro: { cor: '#f4f4f4', x: 0.50, y: 0.30, r: 0.10, halo: 0.28 },
       estrelas: 140, brilho: 0.7, nuvens: 0.2, extraNuvem: 0,
       monte: 0.3, cume: '#cfd8ea', morro: '#141a3a', vila: 0.14
+    },
+    // o jardim da cena depois dos creditos: o sol se pondo atras do Fuji
+    jardim: {
+      ceu: ['#2b2350', '#5b3a78', '#b8577e', '#f08a6e', '#ffd2a0'],
+      astro: { cor: '#fff0c0', x: 0.50, y: 0.30, r: 0.075, halo: 0.3 },
+      estrelas: 14, brilho: 0.35, nuvens: 0.5, extraNuvem: 0,
+      monte: 0.5, cume: '#ffffff', morro: '#5b3a78', vila: 0.3
     }
   };
   var CENARIO_PADRAO = 'tarde';
@@ -3218,6 +3305,8 @@ function geraArte(cena) {
   geraArteSamurai(cena);
   geraArteCocoBoss(cena);
   geraArteFx(cena);
+  // --- o jardim e o jantar da cena depois dos creditos ---
+  geraArteFim(cena);
   // --- retratos da tela de personagens ---
   geraRetratos(cena);
 }
@@ -3527,7 +3616,7 @@ function geraArteChefes(cena) {
 }
 
 // ============================================================================
-//  ARTE DO SAMURAI ROBO (chefe do nivel 5)
+//  ARTE DO SAMURAI ROBO (chefe do nivel 7)
 //  Uma maquina de guerra com armadura de samurai: capacete de aco com as
 //  laminas douradas (kuwagata), visor de LED vermelho no lugar dos olhos,
 //  grade de alto-falante na boca, ombreiras e peito laqueados de vermelho,
@@ -4226,6 +4315,165 @@ function geraArteFx(cena) {
   });
 }
 
+// ---- Arte da cena depois dos creditos: o jantar no jardim japones ---------
+// Cerejeira em flor, lanterninhas de papel, lanterna de pedra, cascalho
+// rastelado, a varanda de madeira, a mesinha baixa e o jantar (o frango
+// assado!). Tudo desenhado pequeno e mostrado em escala 2-3, como os
+// personagens da cena.
+function geraArteFim(cena) {
+  var rosa = '#f4a6c0', rosaLuz = '#ffd6e4', rosaMeio = '#e07aa0', rosaSombra = '#a8487a';
+  var carne = '#c8742c', carneLuz = '#f0b05a', carneEsc = '#8a4a1c', osso = '#f4efe2';
+  // --- cerejeira (tronco torto, galhos abertos e a copa em cachos) ---
+  criaTex(cena, 'sakura', 120, 110, function (ctx) {
+    var tronco = '#3d2433', luz = '#6b4252', r = semente(4242), k, c, j, a, d;
+    var galhos = [[[58, 76], [28, 42]], [[58, 72], [94, 38]], [[58, 70], [62, 26]],
+                  [[42, 58], [14, 58]], [[78, 54], [108, 60]]];
+    for (k = 0; k < galhos.length; k++) linhaGrossa(ctx, galhos[k][0], galhos[k][1], 5, C.escuro);
+    linhaGrossa(ctx, [60, 109], [58, 68], 10, C.escuro);
+    for (k = 0; k < galhos.length; k++) linhaGrossa(ctx, galhos[k][0], galhos[k][1], 3, tronco);
+    linhaGrossa(ctx, [60, 108], [58, 68], 8, tronco);
+    linhaGrossa(ctx, [57, 106], [56, 74], 2, luz);
+    rect(ctx, 50, 106, 20, 4, C.escuro); rect(ctx, 52, 106, 16, 3, tronco);   // raiz
+    var cachos = [[60, 24, 24, 15], [30, 36, 20, 13], [92, 34, 22, 14], [14, 54, 12, 9], [108, 56, 11, 8],
+                  [44, 16, 15, 10], [78, 16, 15, 10], [60, 44, 22, 10], [22, 22, 10, 7], [100, 20, 10, 7]];
+    for (k = 0; k < cachos.length; k++) { c = cachos[k]; elipse(ctx, c[0], c[1] + 2, c[2] + 1, c[3] + 1, rosaSombra); }
+    for (k = 0; k < cachos.length; k++) { c = cachos[k]; elipse(ctx, c[0], c[1], c[2], c[3], rosaMeio); }
+    for (k = 0; k < cachos.length; k++) {
+      c = cachos[k];
+      elipse(ctx, c[0] - Math.round(c[2] * 0.25), c[1] - Math.round(c[3] * 0.3),
+             Math.round(c[2] * 0.6), Math.round(c[3] * 0.55), rosa);
+    }
+    // florzinhas soltas: pontinhos claros espalhados nos cachos
+    for (j = 0; j < 160; j++) {
+      c = cachos[(r() * cachos.length) | 0];
+      a = r() * Math.PI * 2; d = Math.sqrt(r()) * 0.9;
+      rect(ctx, c[0] + Math.cos(a) * c[2] * d, c[1] + Math.sin(a) * c[3] * d, 1, 1, r() < 0.6 ? rosaLuz : '#ffffff');
+    }
+    // pontas de galho aparecendo entre as flores
+    for (j = 0; j < 10; j++) {
+      c = cachos[j % cachos.length];
+      rect(ctx, c[0] + (r() - 0.5) * c[2], c[1] + c[3] * 0.4, 2, 1, tronco);
+    }
+  });
+  // --- lanterninha de papel (chochin) para o varal ---
+  criaTex(cena, 'chochin', 12, 17, function (ctx) {
+    rect(ctx, 5, 0, 2, 2, C.escuro);                                  // gancho
+    elipse(ctx, 6, 9, 6, 5, C.escuro);
+    elipse(ctx, 6, 9, 5, 4, '#e0402a');
+    rect(ctx, 2, 3, 8, 2, C.escuro); rect(ctx, 3, 3, 6, 1, '#4a1f2a');  // tampa
+    rect(ctx, 2, 7, 8, 1, '#a82a1e'); rect(ctx, 2, 11, 8, 1, '#a82a1e'); // varetas
+    rect(ctx, 3, 6, 2, 4, '#ff9a6a');                                 // luz por dentro
+    rect(ctx, 2, 14, 8, 2, C.escuro); rect(ctx, 3, 14, 6, 1, '#4a1f2a'); // fundo
+    rect(ctx, 5, 16, 2, 1, '#ffcd75');                                // borla
+  });
+  // --- lanterna de pedra (toro) com a janelinha acesa ---
+  criaTex(cena, 'toro', 20, 34, function (ctx) {
+    var p = '#8a8f9e', pl = '#b5bac6', ps = '#5d6274';
+    rect(ctx, 3, 29, 14, 5, C.escuro); rect(ctx, 4, 30, 12, 3, ps);        // base
+    rect(ctx, 7, 20, 6, 10, C.escuro); rect(ctx, 8, 20, 4, 10, p);          // coluna
+    rect(ctx, 8, 21, 1, 8, pl);
+    rect(ctx, 4, 17, 12, 4, C.escuro); rect(ctx, 5, 18, 10, 2, pl);         // apoio
+    rect(ctx, 5, 9, 10, 9, C.escuro); rect(ctx, 6, 10, 8, 7, p);            // caixa da luz
+    rect(ctx, 8, 11, 4, 5, '#ffcd75'); rect(ctx, 9, 12, 2, 3, '#fff0b8');   // janela acesa
+    poligonoC(ctx, [[1, 10], [10, 4], [19, 10], [15, 9], [5, 9]], pl, C.escuro);   // telhadinho
+    rect(ctx, 9, 1, 2, 3, C.escuro); rect(ctx, 9, 2, 2, 1, p);              // pinaculo
+  });
+  // --- cascalho rastelado do jardim seco (repete a cada 32 px) ---
+  criaTex(cena, 'cascalho', 32, 15, function (ctx) {
+    var x, y;
+    rect(ctx, 0, 0, 32, 15, '#c9bba8');
+    for (y = 3; y < 15; y += 3) {
+      for (x = 0; x < 32; x++) rect(ctx, x, y + Math.round(Math.sin(x / 32 * Math.PI * 2)), 1, 1, '#a8998a');
+    }
+    rect(ctx, 0, 0, 32, 2, '#2f6b45');                                // musgo na borda
+    rect(ctx, 3, 2, 4, 1, '#2f6b45'); rect(ctx, 19, 2, 6, 1, '#2f6b45');
+  });
+  // --- moita podada (karikomi) com azaleias ---
+  criaTex(cena, 'arbusto', 26, 13, function (ctx) {
+    var r = semente(99), k;
+    elipse(ctx, 13, 8, 12, 5, C.escuro);
+    elipse(ctx, 13, 8, 11, 4, '#2f6b45');
+    elipse(ctx, 10, 6, 7, 2, '#3f8a55');
+    for (k = 0; k < 14; k++) rect(ctx, 4 + r() * 18, 5 + r() * 5, 1, 1, r() < 0.5 ? rosa : rosaLuz);
+  });
+  // --- varanda de madeira (engawa): tabuas com frestas e emendas ---
+  criaTex(cena, 'deck', 32, 24, function (ctx) {
+    var cores = ['#8a5238', '#7a4630', '#93593c', '#7e4a33'], k;
+    for (k = 0; k < 4; k++) {
+      rect(ctx, 0, k * 6, 32, 6, cores[k]);
+      rect(ctx, 0, k * 6, 32, 1, '#a86a48');                          // quina iluminada
+      rect(ctx, 0, k * 6 + 5, 32, 1, '#4a2a22');                      // fresta
+      rect(ctx, (k * 13 + 4) % 32, k * 6 + 1, 1, 4, '#4a2a22');        // emenda
+      rect(ctx, (k * 7 + 15) % 26, k * 6 + 3, 6, 1, escurece(cores[k], 0.85));   // veio
+    }
+  });
+  // --- mesinha baixa (chabudai) laqueada: tampo em perspectiva e pernas curtas ---
+  criaTex(cena, 'mesa', 104, 22, function (ctx) {
+    var tampo = '#8e3b2e', luz = '#c25a3c', borda = '#5c2028', perna = '#4a1f2a';
+    rect(ctx, 6, 9, 7, 13, C.escuro); rect(ctx, 7, 9, 5, 12, perna);
+    rect(ctx, 91, 9, 7, 13, C.escuro); rect(ctx, 92, 9, 5, 12, perna);
+    poligonoC(ctx, [[5, 0], [99, 0], [103, 6], [1, 6]], tampo, C.escuro);
+    rect(ctx, 1, 6, 102, 5, C.escuro); rect(ctx, 2, 6, 100, 4, borda);
+    rect(ctx, 2, 6, 100, 1, '#7a2e2e');
+    rect(ctx, 10, 1, 56, 1, luz); rect(ctx, 72, 1, 18, 1, luz);       // brilho da laca
+    rect(ctx, 30, 3, 44, 2, '#e6d7b8');                               // trilho de mesa (pano)
+    rect(ctx, 30, 3, 44, 1, '#f4ead2');
+  });
+  // --- o jantar: frango assado no prato, com alface em volta ---
+  criaTex(cena, 'frango', 36, 20, function (ctx) {
+    elipse(ctx, 18, 16, 17, 4, C.escuro);                             // prato de porcelana
+    elipse(ctx, 18, 16, 16, 3, '#e6edf7');
+    elipse(ctx, 18, 16, 12, 2, '#b9c4d9');
+    rect(ctx, 3, 16, 2, 1, '#3b5dc9'); rect(ctx, 31, 16, 2, 1, '#3b5dc9');
+    elipse(ctx, 6, 13, 4, 2, C.escuro); elipse(ctx, 6, 13, 3, 1, '#38b764');   // alface
+    elipse(ctx, 30, 13, 4, 2, C.escuro); elipse(ctx, 30, 13, 3, 1, '#38b764');
+    elipse(ctx, 18, 10, 11, 6, C.escuro);                             // o frango
+    elipse(ctx, 18, 10, 10, 5, carne);
+    rect(ctx, 9, 13, 18, 2, carneEsc);
+    elipse(ctx, 15, 8, 5, 2, carneLuz);
+    rect(ctx, 13, 7, 2, 1, '#ffe2a8');
+    // as duas coxinhas para cima, com o ossinho de fora
+    linhaGrossa(ctx, [11, 8], [7, 3], 5, C.escuro); linhaGrossa(ctx, [25, 8], [29, 3], 5, C.escuro);
+    linhaGrossa(ctx, [11, 8], [8, 4], 3, carne);    linhaGrossa(ctx, [25, 8], [28, 4], 3, carne);
+    rect(ctx, 5, 0, 3, 3, C.escuro); rect(ctx, 6, 1, 1, 1, osso);
+    rect(ctx, 28, 0, 3, 3, C.escuro); rect(ctx, 29, 1, 1, 1, osso);
+    rect(ctx, 9, 5, 1, 1, carneLuz); rect(ctx, 26, 5, 1, 1, carneLuz);
+  });
+  // --- tigela de arroz com o hashi, xicara de cha verde e o bule de ferro ---
+  criaTex(cena, 'tigela', 14, 10, function (ctx) {
+    elipse(ctx, 7, 3, 6, 3, C.escuro);
+    elipse(ctx, 7, 3, 5, 2, '#f4f4f4');
+    rect(ctx, 4, 2, 2, 1, '#ffffff');
+    poligonoC(ctx, [[1, 4], [13, 4], [10, 9], [4, 9]], '#b13e53', C.escuro);
+    rect(ctx, 3, 5, 8, 1, '#ef7d57');
+    linhaGrossa(ctx, [1, 1], [13, 0], 1, '#4a1f2a');
+  });
+  criaTex(cena, 'xicara', 8, 7, function (ctx) {
+    rect(ctx, 0, 0, 8, 7, C.escuro);
+    rect(ctx, 1, 1, 6, 5, '#d8d0c0');
+    rect(ctx, 1, 1, 6, 1, '#7fae5a');
+    rect(ctx, 1, 3, 6, 1, '#8a6a5a');
+  });
+  criaTex(cena, 'bule', 16, 13, function (ctx) {
+    linhaGrossa(ctx, [3, 6], [7, 1], 1, C.escuro); linhaGrossa(ctx, [7, 1], [11, 6], 1, C.escuro);   // alca
+    linhaGrossa(ctx, [11, 9], [15, 5], 3, C.escuro); linhaGrossa(ctx, [11, 9], [14, 6], 1, '#3b3f5a'); // bico
+    elipse(ctx, 7, 9, 6, 3, C.escuro);
+    elipse(ctx, 7, 9, 5, 2, '#3b3f5a');
+    rect(ctx, 4, 8, 3, 1, '#566c86');
+    rect(ctx, 5, 4, 5, 3, C.escuro); rect(ctx, 6, 5, 3, 1, '#566c86');   // tampa
+  });
+  // --- uma coxinha voando (no susto, os dois soltam a comida) ---
+  criaTex(cena, 'coxa', 11, 7, function (ctx) {
+    linhaGrossa(ctx, [5, 3], [9, 3], 3, C.escuro);
+    linhaGrossa(ctx, [5, 3], [9, 3], 1, osso);
+    rect(ctx, 8, 1, 3, 2, C.escuro); rect(ctx, 8, 4, 3, 2, C.escuro);
+    rect(ctx, 9, 1, 1, 1, osso); rect(ctx, 9, 5, 1, 1, osso);
+    elipse(ctx, 3, 3, 3, 3, C.escuro);
+    elipse(ctx, 3, 3, 2, 2, carne);
+    rect(ctx, 2, 2, 1, 1, carneLuz);
+  });
+}
+
 // ---- Animacoes -------------------------------------------------------------
 function quadros(pre, nome, n) {
   var a = [], i;
@@ -4243,6 +4491,9 @@ function criaAnimacoes(cena) {
     // habilidades: pirueta (gira) e mergulho/pisao (desce reto)
     cena.anims.create({ key: pre + 'gira',   frames: quadros(pre, 'gira', 2),   frameRate: 18, repeat: -1 });
     cena.anims.create({ key: pre + 'pisao',  frames: quadros(pre, 'pisao', 2),  frameRate: 16, repeat: -1 });
+    // comendo: tres tempos com a coxinha na mao, dois com ela na boca
+    cena.anims.create({ key: pre + 'come', frames: [{ key: pre + 'come0' }, { key: pre + 'come0' }, { key: pre + 'come0' },
+                                                   { key: pre + 'come1' }, { key: pre + 'come1' }], frameRate: 4, repeat: -1 });
   }
   cena.anims.create({ key: 'moeda_gira', frames: quadros('', 'moeda', 4), frameRate: 10, repeat: -1 });
   cena.anims.create({ key: 'bandeira_bal', frames: quadros('', 'bandeira', 2), frameRate: 4, repeat: -1 });
@@ -4523,17 +4774,30 @@ function congelaCena(cena, congelar) {
 
 // Troca de cena com um escurecer rapido (sem corte seco). Com POUCO_MOV troca
 // na hora. Se o jogador apertar duas vezes, so a primeira vale.
+// A troca NAO pode depender do relogio da cena: a pausa congela esse relogio
+// (time.paused), e um delayedCall ali nunca disparava - "MENU" e "REINICIAR"
+// na pausa so escureciam a tela e o jogo ficava parado nela. Quem manda e o
+// fim do escurecer da camera, com um timer da janela de garantia; antes de
+// trocar, a cena e descongelada (o relogio pausado sobrevivia ao reinicio).
 function trocaCena(cena, chave, dados, reinicia) {
   if (cena.trocandoCena) return;
   cena.trocandoCena = true;
   cena.events.once('shutdown', function () { cena.trocandoCena = false; });
+  var foi = false;
   var vai = function () {
-    if (reinicia) cena.scene.restart(dados); else cena.scene.start(chave, dados);
+    if (foi) return;
+    foi = true;
+    if (cena.time) cena.time.paused = false;
+    if (cena.physics && cena.physics.world) cena.physics.resume();
+    // sempre com dados novos: sem eles o Phaser reaproveita os da ultima vez
+    // que a cena abriu ("MENU" caia na lista de fases ou no Modo Infinito)
+    if (reinicia) cena.scene.restart(dados || {}); else cena.scene.start(chave, dados || {});
   };
   if (POUCO_MOV) { vai(); return; }
   var cor = hex2rgb(C.escuro), cams = cena.cameras.cameras;
   for (var i = 0; i < cams.length; i++) cams[i].fadeOut(170, cor.r, cor.g, cor.b);
-  cena.time.delayedCall(180, vai);
+  if (cams.length) cams[0].once('camerafadeoutcomplete', vai);
+  window.setTimeout(vai, 450);
 }
 
 // Faz os objetos de uma tela aparecerem suavemente (cada um volta para a
@@ -4565,7 +4829,7 @@ var ACOES = [
   { id: 'esq',   nome: 'MOVER PARA ESQUERDA' },
   { id: 'dir',   nome: 'MOVER PARA DIREITA' },
   { id: 'pulo',  nome: 'PULAR' },
-  { id: 'baixo', nome: 'ABAIXAR / NO AR: DESCER' },
+  { id: 'baixo', nome: 'DESCER DA PLATAFORMA / NO AR' },
   { id: 'dash',  nome: 'DASH' },
   { id: 'hab',   nome: 'HABILIDADE' }
 ];
@@ -6452,6 +6716,36 @@ function juntaRetangulos(g) {
   }
   return res;
 }
+// Plataformas "de passagem" (so na Campanha): um trecho de telhado com 1
+// bloco de altura, solto no ar (nada firme em cima nem embaixo) e com algum
+// chao mais abaixo para quem descer. Da para subir nelas pulando por baixo e
+// descer com BAIXO. O chao das fases (4 blocos de altura) e os blocos soltos
+// sobre o vazio continuam solidos. Devolve as plataformas e uma copia do mapa
+// sem elas (para a juncao dos solidos; o desenho continua usando o mapa todo).
+function achaPlataformas(g) {
+  var h = g.length, w = g[0].length, lista = [], grade = g.slice(), y, x, x2, i, yy, ok, temChao;
+  var firme = function (c) { return c === '#' || c === ':' || c === 'A' || c === 'Q' || c === 'D'; };
+  for (y = 1; y < h - 1; y++) {
+    x = 0;
+    while (x < w) {
+      if (g[y].charAt(x) !== '#') { x++; continue; }
+      x2 = x;
+      while (x2 + 1 < w && g[y].charAt(x2 + 1) === '#') x2++;
+      ok = x2 > x;                       // pelo menos 2 blocos de largura
+      temChao = false;
+      for (i = x; i <= x2 && ok; i++) {
+        if (firme(g[y - 1].charAt(i)) || firme(g[y + 1].charAt(i))) ok = false;
+        for (yy = y + 2; yy < h && !temChao; yy++) if (firme(g[yy].charAt(i))) temChao = true;
+      }
+      if (ok && temChao) {
+        lista.push({ x: x, y: y, w: x2 - x + 1, h: 1 });
+        grade[y] = grade[y].substring(0, x) + new Array(x2 - x + 2).join('.') + grade[y].substring(x2 + 1);
+      }
+      x = x2 + 1;
+    }
+  }
+  return { lista: lista, grade: grade };
+}
 // Cria os corpos estaticos (invisiveis) a partir dos retangulos juntados
 function criaSolidos(grupo, rets, offX, offY) {
   var lista = [], i, r, s;
@@ -6637,7 +6931,7 @@ var MenuScene = new Phaser.Class({
     objs.push(txt(this, x + 370, y + 16, PERSONAGENS[id - 1].estilo, 7, C.cinza, 1));
     var acoes = [['ANDAR', m.esq.concat(m.dir)], ['PULAR', m.pulo],
                  ['DASH', m.dash], [PERFIS[id].habNome, m.hab],
-                 ['NO AR: DESCER', m.baixo]];
+                 ['DESCER (PLATAFORMA E NO AR)', m.baixo]];
     for (i = 0; i < acoes.length; i++) {
       ly = y + 40 + i * 22;
       objs.push(txt(this, x + 16, ly, acoes[i][0], 8, C.cinza, 0));
@@ -7045,7 +7339,7 @@ var MenuScene = new Phaser.Class({
       itens = [];
       for (i = 0; i < NUM_FASES; i++) {
         (function (idx) {
-          var bloq = idx + 1 > Save.d.desbloqueadas;
+          var bloq = idx + 1 > Save.d.desbloqueadas && !ADMIN.ligado;
           itens.push({
             rot: (idx + 1 < 10 ? ' ' : '') + (idx + 1) + '.  ' + FASES[idx].nome,
             bloq: bloq,
@@ -7059,7 +7353,7 @@ var MenuScene = new Phaser.Class({
       for (i = 0; i < NUM_FASES; i++) {
         (function (idx) {
           var yy = cena.lista.textos[idx].y;
-          var bloq = idx + 1 > Save.d.desbloqueadas;
+          var bloq = idx + 1 > Save.d.desbloqueadas && !ADMIN.ligado;
           var f = Save.fase(idx), fase = FASES[idx], k;
           if (bloq) {
             var gc = cena.add.graphics();
@@ -7069,7 +7363,7 @@ var MenuScene = new Phaser.Class({
             return;
           }
           // etiqueta do tipo de fase (chefe, velocidade, precisao...)
-          // a arena-surpresa da Ronda nao ganha etiqueta: a graca e nao saber
+          // a arena-surpresa do Olho de Gato nao ganha etiqueta: a graca e nao saber
           var et = fase.final ? ['CHEFE FINAL', C.perigo]
                  : ((fase.arena && fase.arena.gatilho === 'entrada') ? ['+ CHEFE', C.perigo] : ETIQUETA_FASE[fase.tipo]);
           if (et) cena.objs.push(txt(cena, 470, yy, et[0], fase.final ? 6 : 7, et[1], 0));
@@ -7872,7 +8166,8 @@ var AMBIENTES = {
   noite:      { vinheta: 0.48, tipo: 'vagalumes' },
   tempestade: { vinheta: 0.42, tipo: 'chuva', raios: true },
   neve:       { vinheta: 0.24, tipo: 'neve' },
-  luar:       { vinheta: 0.45, tipo: 'vagalumes' }
+  luar:       { vinheta: 0.45, tipo: 'vagalumes' },
+  jardim:     { vinheta: 0.22, tipo: 'petalas' }
 };
 function criaAmbiente(cena, cen) {
   var a = AMBIENTES[cen] || AMBIENTES.tarde, f = POUCO_MOV ? 4 : 1;
@@ -7962,8 +8257,8 @@ function relampago(cena, forte) {
 // ============================================================================
 var BOSSES = {
   // ---- O GIGANTE REAL (o guardao do imperador) ----
-  // Aparece de surpresa no fim da Ronda (fase 7): a fase parece terminar no
-  // estandarte e ele cai do ceu (veja CampaignScene.roteiroSurpresaGigante).
+  // Aparece de surpresa no fim do Olho de Gato (fase 4): a fase parece
+  // terminar no estandarte e ele cai do ceu (veja roteiroSurpresaGigante).
   guarda: {
     pre: 'bg_',                       // prefixo das texturas e animacoes
     rotulo: 'FÔLEGO DO GIGANTE REAL',
@@ -7998,7 +8293,7 @@ var BOSSES = {
   },
 
 
-  // ---- CHEFE DO NIVEL 5: O SAMURAI ROBO ----
+  // ---- CHEFE DO NIVEL 7: O SAMURAI ROBO ----
   // Uma maquina de guerra disciplinada e silenciosa. Tres fases:
   //   I   (6-4 de folego)  cortes de katana, combo e investida
   //   II  (3-2)            SOBRECARGA: mais rapido, ondas de plasma
@@ -8716,7 +9011,7 @@ function Boss(cena, def, x, chaoY, opcoes) {
   this.chao = chaoY;
   this.x = x; this.y = chaoY;
   // limites da arena (paredes). Numa fase de chefe a arena e o mapa todo; na
-  // Ventania ela e so o trecho final do telhado (cena.arena diz qual)
+  // Ronda e no Olho de Gato ela e so o trecho final do telhado (cena.arena)
   this.ax0 = cena.arena ? cena.arena.x0 : 0;
   this.ax1 = cena.arena ? cena.arena.x1 : cena.LW;
   this.esq = this.ax0 + def.larg / 2 + 2;
@@ -9121,6 +9416,19 @@ Boss.prototype.acerta = function (r, pisou) {
     return;
   }
   this.mudaEstado('atingido', 950);
+};
+
+// Modo admin: tira um folego na hora, com tudo o que um pisao certeiro faz
+// (pontos, viradas de fase da luta e a derrota no ultimo). Devolve false
+// quando o chefe ja caiu ou esta numa cutscene.
+Boss.prototype.adminTira = function (r) {
+  if (this.folego <= 0 || this.estado === 'cena' || this.estado === 'rendido') return false;
+  this.limpaAtaque();
+  this.nomeAtaque = null; this.fase2 = '';
+  if (this.icone) this.icone.setVisible(false);
+  this.y = this.chao; this.altura = 0;          // se estava no ar, desce
+  this.acerta(r, false);
+  return true;
 };
 
 Boss.prototype.rende = function () {
@@ -9538,6 +9846,7 @@ var CampaignScene = new Phaser.Class({
     RelQuedas.anota(this.iFase, 'comecou');
     this.tempoMs = 0; this.mortes = 0; this.moedasPegas = 0; this.totalMoedas = 0;
     this.terminou = false; this.pausado = false;
+    this.time.paused = false;          // a pausa de uma partida anterior nao sobrevive
     this.moveis = []; this.texsCriadas = []; this.listaPausa = null; this.objsPausa = [];
     this.quebradicas = []; this.caixas = []; this.dicaMola = false; this.dicaCaixa = false;
     this.boss = null; this.pontoBoss = null;
@@ -9547,7 +9856,8 @@ var CampaignScene = new Phaser.Class({
     this.sub = null; this.tutorial = null;
     this.placar = null; this.secretosPegos = 0; this.usosHab = 0;
     this.bichos = []; this.fantasmas = []; this.trincadas = [];
-    this.escorregas = []; this.ventos = []; this.dicaTrincada = false;
+    this.escorregas = []; this.ventos = []; this.dicaTrincada = false; this.dicaPlataforma = false;
+    this.chaoAdmin = null; this.resgateAdmin = null; this.adminPedido = 0;
     this.ventouSom = false; this.hudDiario = null;
     this.tempoAcabou = false; this.ultimoTique = -1; this.perdeu = false;
     // chefes novos, cutscenes e clima
@@ -9563,8 +9873,8 @@ var CampaignScene = new Phaser.Class({
     this.g = g;
     var cols = g[0].length, lins = g.length;
     this.LW = cols * T; this.LH = lins * T;
-    // fase com arena de chefe no fim do telhado (a Ventania): a luta comeca
-    // quando o jogador entra nela (veja entraArena)
+    // fase com arena de chefe no fim do telhado (Olho de Gato, Ronda): a luta
+    // comeca ao entrar nela ou ao tocar o estandarte (veja entraArena)
     this.arenaDef = fase.arena ? { boss: fase.arena.boss, x0: fase.arena.c0 * T, x1: fase.arena.c1 * T,
                                    gatilho: fase.arena.gatilho || 'entrada', coco: fase.arena.coco } : null;
     this.fimX = this.arenaDef ? this.arenaDef.x1 : this.LW;
@@ -9589,8 +9899,12 @@ var CampaignScene = new Phaser.Class({
     this.add.rectangle(0, yViela, this.LW, this.LH - yViela + 240, N.escuro).setOrigin(0).setDepth(3);
 
     // ---- blocos: colisao em poucos retangulos + desenho em fatias ----
+    // as plataformas soltas no ar viram "de passagem" (veja achaPlataformas)
+    var plats = achaPlataformas(g);
     this.solidos = this.physics.add.staticGroup();
-    criaSolidos(this.solidos, juntaRetangulos(g), 0, 0);
+    criaSolidos(this.solidos, juntaRetangulos(plats.grade), 0, 0);
+    this.plataformas = this.physics.add.staticGroup();
+    criaSolidos(this.plataformas, plats.lista, 0, 0);
     var fat = montaFatias(this, g, 'fase' + this.iFase, 0, 0, 4);
     this.texsCriadas = fat.texs.slice();
     // cenario das arenas dos chefes: o torii do palacio e os estandartes imperiais
@@ -9688,7 +10002,7 @@ var CampaignScene = new Phaser.Class({
         .setOrigin(0.5, 1).setDepth(8).play(gp + '_parada');
       this.coco.flipX = true;
     } else if (this.arenaDef && this.arenaDef.coco) {
-      // Ventania: a Cócó cisca num telhado distante, sem saber de nada. So a
+      // Ronda: a Cócó cisca num telhado distante, sem saber de nada. So a
       // camera da cutscene depois da luta chega la.
       var cl = this.arenaDef.coco;
       this.coco = this.add.sprite(cl.c * T + 16, cl.l * T + 2, 'coco4').setOrigin(0.5, 1).setDepth(8).play('coco_parada');
@@ -9710,7 +10024,16 @@ var CampaignScene = new Phaser.Class({
     this.ponto = { x: this.nasce.x, y: this.nasce.y };
 
     this.physics.add.collider(this.r.corpo, this.solidos);
-    for (var i = 0; i < this.moveis.length; i++) this.physics.add.collider(this.r.corpo, this.moveis[i].spr);
+    // plataforma de passagem: so segura quem chega por cima, caindo (pulando
+    // por baixo atravessa); com BAIXO o jogador desce por ela (r.desceT)
+    this.physics.add.collider(this.r.corpo, this.plataformas, null, function (a, pl) {
+      var b = cena.r.corpo.body;
+      return !(cena.r.desceT > 0) && b.velocity.y >= 0 && b.prev.y + b.height <= pl.body.top + 2;
+    });
+    // as tabuas ao vento continuam firmes por baixo, mas tambem deixam descer
+    for (var i = 0; i < this.moveis.length; i++) {
+      this.physics.add.collider(this.r.corpo, this.moveis[i].spr, null, function () { return !(cena.r.desceT > 0); });
+    }
     this.physics.add.overlap(this.r.corpo, this.perigos, function (a, pg) { cena.tocouPerigo(pg); });
     this.physics.add.overlap(this.r.corpo, this.moedas, function (a, m) { cena.pegaMoeda(m); });
     this.physics.add.overlap(this.r.corpo, this.checks, function (a, c) { cena.ativaCheck(c); });
@@ -9723,6 +10046,7 @@ var CampaignScene = new Phaser.Class({
     this.physics.add.collider(this.r.corpo, this.grupoAs, function (a, es) { cena.pisouEscorrega(es); });
     if (this.caixas.length) {
       this.physics.add.collider(this.caixas, this.solidos);
+      this.physics.add.collider(this.caixas, this.plataformas);
       this.physics.add.collider(this.caixas, this.grupoQ);
       this.physics.add.collider(this.caixas, this.grupoD);
       this.physics.add.collider(this.caixas, this.grupoTr);
@@ -10165,6 +10489,22 @@ var CampaignScene = new Phaser.Class({
     r.escorregando = true;
   },
 
+  // em pe em cima de uma plataforma de passagem ou de uma tabua ao vento?
+  naPlataforma: function () {
+    var b = this.r.corpo.body, i, pl, lista;
+    if (!(b.blocked.down || b.touching.down)) return false;
+    lista = this.plataformas ? this.plataformas.getChildren() : [];
+    for (i = 0; i < lista.length; i++) {
+      pl = lista[i].body;
+      if (b.right > pl.left + 2 && b.left < pl.right - 2 && Math.abs(b.bottom - pl.top) <= 3) return true;
+    }
+    for (i = 0; i < this.moveis.length; i++) {
+      pl = this.moveis[i].spr.body;
+      if (b.right > pl.left + 2 && b.left < pl.right - 2 && Math.abs(b.bottom - pl.top) <= 4) return true;
+    }
+    return false;
+  },
+
   // ---- Corrente de ar "~": sopro que empurra para cima. E a rota alta do
   //      Tobias (que nao tem pirueta) e um atalho para os dois.
   criaVento: function (px, py) {
@@ -10255,6 +10595,7 @@ var CampaignScene = new Phaser.Class({
   mata: function (causa) {
     var cena = this, r = this.r;
     if (r.morto || this.terminou || this.perdeu || this.emCena) return;
+    if (ADMIN.ligado) { this.salvaAdmin(causa); return; }
     RelQuedas.anota(this.iFase, causa || '?', Math.floor(r.corpo.x / T));
     r.morto = true;
     r.dashT = 0; r.dashando = false; r.pisando = false; r.mergulhando = false;
@@ -10271,6 +10612,54 @@ var CampaignScene = new Phaser.Class({
     this.time.delayedCall(650, function () { cena.renasce(); });
   },
 
+  // Modo admin: nada derruba. Mato, bichos e chefes nao contam (o chefe so
+  // empurra, como no escudo); quem cai num buraco ou para fora do telhado
+  // volta para o ultimo telhado firme em que pisou.
+  salvaAdmin: function (causa) {
+    var r = this.r, p;
+    if (causa === 'chefe' && this.boss) {
+      r.corpo.setVelocity((r.corpo.x < this.boss.x ? -1 : 1) * 320, -260);
+      return;
+    }
+    if (causa !== 'buraco' && causa !== 'vao') return;
+    // a queda costuma ser avisada no meio do passo da fisica (overlap com o
+    // buraco): mover ali deixa o corpo enterrado no telhado. O resgate fica
+    // para o comeco do proximo quadro (veja voltaAdmin no update).
+    this.resgateAdmin = this.chaoAdmin || this.ponto;
+  },
+  // Modo admin: 1 tira um pedaco da vida do chefe; 2 passa direto (derrota o
+  // chefe na hora - com a cutscene dele, que o ENTER pula - ou, sem chefe na
+  // luta, conclui a fase como se tivesse chegado ao estandarte).
+  comandoAdmin: function (n) {
+    var r = this.r, b = this.boss, az = '#9fe8ff';
+    if (this.terminou || this.perdeu || this.emCena || r.morto) return;
+    var lutando = !!(b && b.folego > 0 && b.estado !== 'cena' && b.estado !== 'rendido');
+    if (n === 1) {
+      if (!lutando) { balao(this, r.corpo.x, r.corpo.y - 40, 'ADMIN: NENHUM CHEFE NA LUTA', az); return; }
+      b.adminTira(r);
+      legenda(this, 'ADMIN: CHEFE PERDEU UM PEDAÇO DA VIDA', az);
+      return;
+    }
+    if (lutando) {
+      b.folego = 1;
+      b.adminTira(r);
+      legenda(this, 'ADMIN: CHEFE DERROTADO', az);
+      return;
+    }
+    if (b) return;                    // o chefe ja caiu: a cena dele termina a fase
+    balao(this, r.corpo.x, r.corpo.y - 40, 'ADMIN: PASSOU DIRETO!', az);
+    this.termina();
+  },
+  voltaAdmin: function () {
+    var r = this.r, p = this.resgateAdmin;
+    this.resgateAdmin = null;
+    r.corpo.body.reset(p.x, p.y - 2);          // posicao, posicao anterior e velocidade
+    r.dashT = 0; r.dashando = false; r.pisando = false; r.mergulhando = false; r.desceT = 0;
+    if (!r.corpo.body.allowGravity) r.corpo.body.setAllowGravity(true);
+    this.cameras.main.flash(120, 26, 28, 44);
+    balao(this, p.x, p.y - 40, 'ADMIN: DE VOLTA!', '#9fe8ff');
+  },
+
   renasce: function () {
     var r = this.r, p = this.ponto;
     r.corpo.setPosition(p.x, p.y);
@@ -10280,7 +10669,7 @@ var CampaignScene = new Phaser.Class({
     r.cargas = r.cargasMax; r.invenc = 700; r.sx = 1; r.sy = 1; r.buffer = 0; r.coyote = 0;
     r.quique = null; r.molaPendente = false; r.pisaoPendente = false;
     r.escudando = false; r.escudoT = 0; r.habCd = 0; r.girando = 0;
-    r.pisando = false; r.mergulhando = false; r.piruetaUsada = false;
+    r.pisando = false; r.mergulhando = false; r.piruetaUsada = false; r.desceT = 0;
     this.cameras.main.flash(160, 26, 28, 44);
     // o chefe se afasta do ponto de renascimento e recomeca a rodada
     if (this.boss) this.boss.jogadorVoltou(p);
@@ -10371,7 +10760,10 @@ var CampaignScene = new Phaser.Class({
       }
     }
     this.time.delayedCall(950, function () {
-      cena.scene.start('GameOverScene', {
+      // zerou a campanha: antes do resumo vem os creditos e a cena depois
+      // deles (FimScene), que repassa estes mesmos dados para o resumo
+      var final = FASES[cena.iFase].final && !cena.diario;
+      cena.scene.start(final ? 'FimScene' : 'GameOverScene', {
         modo: 'fase', fase: cena.iFase, tempo: cena.tempoMs,
         moedas: cena.moedasPegas, total: cena.totalMoedas, mortes: cena.mortes,
         secretos: cena.secretosPegos, totalSecretos: FASES[cena.iFase].totalSecretos || 0,
@@ -10511,14 +10903,15 @@ var CampaignScene = new Phaser.Class({
     });
     if (this.roteiro && this.roteiro.fim) this.roteiro = null;
     if (this.roteiro) {
-      this.roteiro.podePular = !!(id && Save.viuCena(id));
+      this.roteiro.podePular = !!(id && Save.viuCena(id)) || ADMIN.ligado;
       if (this.roteiro.podePular) this.cinema.dica('ENTER: PULAR');
     }
   },
 
   // ---- ARENAS NO FIM DO TELHADO --------------------------------------------
-  // A Ventania (fase 5) abre a arena quando o jogador ENTRA nela; a Ronda
-  // (fase 7) so quando ele toca o estandarte, que parecia o fim da fase.
+  // O Olho de Gato (fase 4) so abre a arena quando o jogador toca o
+  // estandarte, que parecia o fim da fase; a Ronda (fase 7) abre quando ele
+  // ENTRA nela.
   entraArena: function () {
     var a = this.arenaDef;
     this.arena = { x0: a.x0, x1: a.x1 };
@@ -10531,7 +10924,7 @@ var CampaignScene = new Phaser.Class({
     if (a.gatilho === 'bandeira') this.iniciaRoteiro(this.roteiroSurpresaGigante(), 'gigante');
     else this.iniciaRoteiro(this.roteiroEntradaSamurai(), 'samuraiEntrada');
   },
-  // o estandarte: normalmente termina a fase; na Ronda e a armadilha
+  // o estandarte: normalmente termina a fase; no Olho de Gato e a armadilha
   tocouBandeira: function () {
     if (this.emCena || this.terminou) return;
     var a = this.arenaDef;
@@ -10548,7 +10941,7 @@ var CampaignScene = new Phaser.Class({
     if (Math.random() < 0.3) FX.solta(this, 'vapor', 1, x, y + 6);
   },
 
-  // ---- SURPRESA DA RONDA: O GIGANTE REAL -------------------------------------
+  // ---- SURPRESA DO OLHO DE GATO: O GIGANTE REAL ------------------------------
   // O jogador toca o estandarte e comemora como sempre... o telhado treme,
   // o Gigante Real cai do ceu, derruba o estandarte e grita a fala dele.
   roteiroSurpresaGigante: function () {
@@ -10610,7 +11003,7 @@ var CampaignScene = new Phaser.Class({
           } },
         { ms: 1800, ini: function () {
             b.poe('parado');
-            cena.cinema.titulo('CHEFE  -  FASE 7', 'O GIGANTE REAL', 'O GUARDA MAIS ALTO DO IMPERADOR', C.perigo2, 1600);
+            cena.cinema.titulo('CHEFE  -  FASE ' + (cena.iFase + 1), 'O GIGANTE REAL', 'O GUARDA MAIS ALTO DO IMPERADOR', C.perigo2, 1600);
             legenda(cena, 'CHEFE: O GIGANTE REAL', C.perigo2);
             cena.camFoca(cx, cy, 1, 500);
           } }
@@ -10633,7 +11026,7 @@ var CampaignScene = new Phaser.Class({
   },
 
   // ---- ENTRADA DO SAMURAI ROBO -----------------------------------------------
-  // A camera para na arena, um relampago, e ele desce do ceu nos
+  // A camera para na arena, o alarme pisca, e ele desce do ceu nos
   // propulsores. Pousa desligado, o visor acende, os servos o levantam e a
   // katana de plasma liga. Ele mira a Cócó e se apresenta.
   roteiroEntradaSamurai: function () {
@@ -10643,7 +11036,11 @@ var CampaignScene = new Phaser.Class({
       passos: [
         { ms: 700, ini: function () { cena.cinema.barras(true, 500); MUSICA.para(); cena.r.corpo.setVelocityX(0); } },
         { ms: 1000, ini: function () { cena.camFoca(cx, cy, 1, 1000); } },
-        { ms: 800, ini: function () { relampago(cena, true); SOM.faseChefe(); legenda(cena, 'ALERTA: ALGO DESCENDO', C.perigo); } },
+        { ms: 800, ini: function () {
+            if (FASES[cena.iFase].cenario === 'tempestade') relampago(cena, true);
+            else FX.flash(cena, 120, 255, 60, 60);
+            SOM.faseChefe(); legenda(cena, 'ALERTA: ALGO DESCENDO', C.perigo);
+          } },
         // desce nos propulsores
         { ms: 900, ini: function () {
             b.spr.setVisible(true).setAlpha(1); b.poe('pulo'); b.y = b.chao - 460; SOM.jato();
@@ -10676,7 +11073,7 @@ var CampaignScene = new Phaser.Class({
             cena.cinema.fala('ALVO DETECTADO: A GALINHA DO IMPERADOR.', '#9fe8ff', 1700);
           } },
         { ms: 2300, ini: function () {
-            cena.cinema.titulo('CHEFE  -  NÍVEL 5', 'SAMURAI ROBÔ', 'A MÁQUINA DE GUERRA DOS TELHADOS', '#ff2438', 2100);
+            cena.cinema.titulo('CHEFE  -  FASE ' + (cena.iFase + 1), 'SAMURAI ROBÔ', 'A MÁQUINA DE GUERRA DOS TELHADOS', '#ff2438', 2100);
             legenda(cena, 'CHEFE: SAMURAI ROBÔ', C.perigo);
           } },
         { ms: 500, ini: function () {
@@ -10916,7 +11313,7 @@ var CampaignScene = new Phaser.Class({
           cena.cinema.titulo('CHEFE FINAL', 'A GALINHA ROBÔ', 'VOCÊ DERROTOU O SAMURAI... MAS O DISPOSITIVO TRANSFORMOU A CÓCÓ!', '#ff2438', 2600);
           legenda(cena, 'A CÓCÓ VIROU ROBÔ', C.perigo);
         } },
-      // 15. ela liga os propulsores e foge voando para dentro da tempestade
+      // 15. ela liga os propulsores e foge voando para dentro da noite
       { ms: 1300, ini: function () {
           grande.play('cr_pulo'); SOM.cocoRoboRi(); SOM.jato();
           balao(cena, grande.x, grande.y - 100, 'CÓ-CÓ-CÓ! MODO ROBÔ ATIVADO!', '#9fe8ff');
@@ -11249,7 +11646,37 @@ var CampaignScene = new Phaser.Class({
     // chegou na arena do fim do telhado: comeca a luta
     if (this.arenaDef && this.arenaDef.gatilho === 'entrada' && !this.arena && !r.morto && !this.emCena &&
         !this.terminou && r.corpo.x > this.arenaDef.x0 + 80) this.entraArena();
+    if (this.resgateAdmin) this.voltaAdmin();
+    if (this.adminPedido) {                       // tecla 1 ou 2 do modo admin
+      var pedA = this.adminPedido;
+      this.adminPedido = 0;
+      if (ADMIN.ligado) this.comandoAdmin(pedA);
+    }
+    // BAIXO em cima de uma plataforma de passagem (ou de uma tabua): desce.
+    // No chao o BAIXO nao fazia nada; no ar continua sendo mergulho/pisao.
+    if (r.desceT > 0) r.desceT -= dt;
+    if (r.entrada.baixoAgora && !r.morto && this.naPlataforma()) {
+      r.desceT = 240;
+      r.corpo.setVelocityY(Math.max(r.corpo.body.velocity.y, 140));
+    }
+    // modo admin: dash, pirueta e habilidade sempre prontos, e pulo infinito
+    // no ar (o pulo do ar entra pelo coyote time, igual a um pulo normal)
+    if (ADMIN.ligado && !r.morto) {
+      r.cargas = r.cargasMax; r.piruetaUsada = false; r.habCd = 0; r.pisaoCd = 0;
+      if (r.entrada.puloAgora && !r.noChao && !(r.dashT > 0) && !r.pisando) r.coyote = FIS.COYOTE;
+    }
     atualizaCorredor(this, r, dt);
+    // a primeira vez em cima de uma plataforma, avisa que da para descer
+    if (!this.dicaPlataforma && r.noChao && !r.morto && !this.emCena && this.naPlataforma()) {
+      this.dicaPlataforma = true;
+      var tb = Controles.teclasDe(1, 'baixo');
+      balao(this, r.corpo.x, r.corpo.y - 40, (tb.length ? nomeTecla(tb[0], false) : 'BAIXO') + ': DESCE', C.cinza);
+    }
+    // modo admin: guarda o ultimo telhado firme (quem cair volta para ele)
+    if (ADMIN.ligado && r.noChao && !r.morto) {
+      var gxA = Math.floor(r.corpo.x / T), gyA = Math.floor((r.corpo.body.bottom + 2) / T);
+      if (this.g[gyA] && this.g[gyA].charAt(gxA) === '#') this.chaoAdmin = { x: r.corpo.x, y: r.corpo.y };
+    }
     // pisao: o baque tambem entra depois da fisica, pelo mesmo motivo
     if (r.pisaoPendente) { r.pisaoPendente = false; if (!r.morto) this.baqueDoPisao(r); }
     // trampolim: o impulso entra depois da fisica do jogador, por cima dela
@@ -11313,7 +11740,7 @@ var CampaignScene = new Phaser.Class({
   // perde a fase inteira: e uma pressao, nao uma punicao).
   checaLimite: function () {
     var f = FASES[this.iFase];
-    if (!f.limite || this.terminou) return;
+    if (!f.limite || this.terminou || ADMIN.ligado) return;
     var resta = f.limite - this.tempoMs;
     var seg = Math.ceil(resta / 1000);
     if (seg <= 10 && seg > 0 && seg !== this.ultimoTique) {
@@ -11377,6 +11804,7 @@ var RaceScene = new Phaser.Class({
     this.contaTrecho = 0; this.ultimoId = '';
     this.bordaX = -520; this.bordaVel = 58; this.tempo = 0;
     this.acabou = false; this.pausado = false;
+    this.time.paused = false;          // a pausa de uma partida anterior nao sobrevive
     this.objsPausa = []; this.listaPausa = null;
     this.placar = null; this.moedas = null; this.usosHab = 0;
     this.r1 = null; this.r2 = null; this.corredores = []; this.sub = null;
@@ -12455,11 +12883,527 @@ var GameOverScene = new Phaser.Class({
 });
 
 // ============================================================================
+//  MODO ADMIN - tudo facilitado, para testar o jogo
+//  CTRL+M abre a caixinha do codigo; digitar 67 liga (ou desliga, se ja
+//  estiver ligado). Ligado, na Campanha: nada derruba (mato, bichos e chefes
+//  nao contam; cair num buraco devolve ao ultimo telhado firme), pulo
+//  infinito no ar, dash, pirueta e habilidade sempre carregados, sem limite
+//  de tempo, todas as fases abertas na lista e toda cutscene pode ser pulada
+//  com ENTER. Durante a fase: tecla 1 tira um pedaco da vida do chefe e
+//  tecla 2 passa direto (derrota o chefe ou conclui a fase). Fica salvo neste navegador ate ser desligado; o selo "ADMIN"
+//  no pe da tela avisa que esta ligado.
+//  A tecla e lida direto da janela, na fase de captura: assim nem o Phaser
+//  nem o atalho "M = mudo" veem o CTRL+M e os numeros do codigo.
+// ============================================================================
+var CODIGO_ADMIN = '67';
+var ADMIN = {
+  ligado: false,
+  esperando: false,
+  digitado: '',
+  timer: null,
+  CHAVE: 'cadeAGalinha.admin',
+
+  carrega: function () {
+    try { this.ligado = window.localStorage.getItem(this.CHAVE) === '1'; } catch (e) { this.ligado = false; }
+    this.selo();
+  },
+  salva: function () {
+    try { window.localStorage.setItem(this.CHAVE, this.ligado ? '1' : '0'); } catch (e) {}
+  },
+  selo: function () {
+    var el = document.getElementById('admin-selo');
+    if (el) el.classList.toggle('ligado', this.ligado);
+  },
+  pinta: function (msg, cod, cor) {
+    var cx = document.getElementById('admin-caixa');
+    if (!cx) return;
+    document.getElementById('admin-msg').textContent = msg;
+    var k = document.getElementById('admin-cod');
+    k.textContent = cod;
+    k.style.color = cor || '';
+    cx.classList.add('aberta');
+  },
+  // "6 _" enquanto digita
+  mostraCod: function () {
+    var s = this.digitado;
+    while (s.length < CODIGO_ADMIN.length) s += '_';
+    return s.split('').join(' ');
+  },
+  msgPede: function () { return this.ligado ? 'DIGITE O CÓDIGO PARA DESLIGAR' : 'DIGITE O CÓDIGO'; },
+  agenda: function (ms) {
+    var a = this;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(function () { a.fecha(); }, ms);
+  },
+  abre: function () {
+    this.esperando = true;
+    this.digitado = '';
+    this.pinta(this.msgPede(), this.mostraCod());
+    this.agenda(9000);
+    try { SOM.mover(); } catch (e) {}
+  },
+  fecha: function () {
+    this.esperando = false;
+    var cx = document.getElementById('admin-caixa');
+    if (cx) cx.classList.remove('aberta');
+  },
+  tecla: function (ev) {
+    var ehM = ev.code === 'KeyM' || ev.key === 'm' || ev.key === 'M';
+    if (ev.ctrlKey && !ev.altKey && !ev.metaKey && ehM) {
+      ev.preventDefault(); ev.stopPropagation();
+      if (!ev.repeat) this.abre();
+      return;
+    }
+    if (!this.esperando) {
+      // ligado: 1 = tira um pedaco da vida do chefe, 2 = passa direto
+      if (this.ligado && !ev.ctrlKey && !ev.altKey && !ev.metaKey && !ev.repeat) {
+        var cmd = (ev.code === 'Digit1' || ev.code === 'Numpad1') ? 1
+                : ((ev.code === 'Digit2' || ev.code === 'Numpad2') ? 2 : 0);
+        if (cmd && this.comando(cmd)) { ev.preventDefault(); ev.stopPropagation(); }
+      }
+      return;
+    }
+    // com a caixinha aberta, as teclas sao so dela
+    ev.preventDefault(); ev.stopPropagation();
+    if (ev.key === 'Escape') { this.fecha(); return; }
+    if (ev.key === 'Backspace') {
+      this.digitado = this.digitado.slice(0, -1);
+      this.pinta(this.msgPede(), this.mostraCod());
+      return;
+    }
+    var d = /^[0-9]$/.test(ev.key || '') ? ev.key
+          : (/^(Digit|Numpad)[0-9]$/.test(ev.code || '') ? ev.code.slice(-1) : '');
+    if (!d) return;
+    this.digitado += d;
+    this.pinta(this.msgPede(), this.mostraCod());
+    this.agenda(9000);
+    if (this.digitado.length >= CODIGO_ADMIN.length) this.confere();
+  },
+  confere: function () {
+    this.esperando = false;
+    if (this.digitado === CODIGO_ADMIN) {
+      this.ligado = !this.ligado;
+      this.salva(); this.selo();
+      this.pinta(this.ligado ? 'LIGADO: TUDO FACILITADO!' : 'DESLIGADO', this.ligado ? 'ON' : 'OFF',
+                 this.ligado ? '#a7f070' : '#ef7d57');
+      try { if (this.ligado) SOM.conquista(); else SOM.voltar(); } catch (e) {}
+      this.atualizaTelas();
+    } else {
+      this.pinta('CÓDIGO ERRADO', this.mostraCod(), '#ef7d57');
+      try { SOM.semCarga(); } catch (e) {}
+    }
+    this.agenda(1500);
+  },
+  // so marca o pedido: quem executa e o update da fase, no proximo quadro
+  // (fora do evento de teclado e do passo da fisica)
+  comando: function (n) {
+    var c = null;
+    try { c = jogo.scene.getScene('CampaignScene'); } catch (e) {}
+    if (!c || !c.scene.isActive() || c.pausado || !c.r) return false;
+    c.adminPedido = n;
+    return true;
+  },
+  // a lista de fases mostra cadeados: se ela estiver aberta, e redesenhada
+  atualizaTelas: function () {
+    try {
+      var m = jogo.scene.getScene('MenuScene');
+      if (m && m.scene.isActive() && m.pagina === 'fases') m.abre('fases');
+    } catch (e) {}
+  }
+};
+window.addEventListener('keydown', function (ev) { ADMIN.tecla(ev); }, true);
+
+// ============================================================================
+//  FIM DE JOGO - os creditos e a cena depois deles
+//  Vem depois do chefe final, antes do resumo da campanha. Os creditos sobem
+//  (ENTER/OK pula) e, quando parece que acabou, a cena pos-creditos: os dois
+//  tratadores jantando um frango assado num jardim japones, sob as
+//  cerejeiras e o Fuji... ate a Cócó pular na mesa, ver o que tem no prato
+//  e fugir de novo. Recebe os mesmos dados que a fase mandaria para a
+//  GameOverScene e os repassa no fim.
+// ============================================================================
+var FimScene = new Phaser.Class({
+  Extends: Phaser.Scene,
+  initialize: function FimScene() { Phaser.Scene.call(this, { key: 'FimScene' }); },
+
+  init: function (dados) { this.d = dados || {}; },
+
+  create: function () {
+    this.teclas = criarTeclas(this);
+    this.roteiro = null; this.cinema = null; this.saindo = false;
+    this.k = this.t = this.cc = null;
+    this.cameras.main.setBackgroundColor(C.escuro);
+    this.creditos();
+  },
+
+  // ---- CREDITOS: o elenco, os chefes e quem fez o jogo, subindo ------------
+  creditos: function () {
+    var cena = this, y = 0, i, sp;
+    this.etapa = 'creditos';
+    this.objsCred = [];
+    this.objsCred.push(this.add.image(0, 0, 'ceu_noite').setOrigin(0).setDepth(0).setAlpha(0.6));
+    this.ambCred = criaAmbiente(this, 'noite');
+    var rolo = this.rolo = this.add.container(0, ALT + 30).setDepth(10);
+    this.objsCred.push(rolo);
+    var poe = function (o) { rolo.add(o); return o; };
+    var linha = function (s, tam, cor, esp) {
+      poe(txt(cena, LARG / 2, y, s, tam, cor));
+      y += esp || Math.round(tam * 2.4);
+    };
+    var secao = function (s) { y += 34; linha('- ' + s + ' -', 9, C.perigo2, 30); };
+    // um sprite com o nome e o apelido embaixo
+    var figura = function (chave, anim, esc, nome, sub, cor) {
+      var f = poe(cena.add.sprite(LARG / 2, y, chave).setOrigin(0.5, 0).setScale(esc));
+      if (anim && cena.anims.exists(anim)) f.play(anim);
+      y += Math.round(f.height * esc) + 12;
+      linha(nome, 13, cor || C.ui, 26);
+      if (sub) linha(sub, 8, C.cinza, 22);
+      y += 14;
+    };
+    // em que fase cada chefe aparece (lido das FASES, nao escrito a mao)
+    var fase = function (id) {
+      for (var k = 0; k < FASES.length; k++) {
+        if (FASES[k].boss === id || (FASES[k].arena && FASES[k].arena.boss === id)) return 'FASE ' + (k + 1);
+      }
+      return '';
+    };
+    poe(this.add.image(LARG / 2, y, 'logo').setOrigin(0.5, 0)); y += 213;
+    linha('UMA FUGA PELOS TELHADOS DO PALÁCIO', 9, C.cinza, 40);
+    secao('ELENCO');
+    figura('p1_parado0', 'p1_parado', 3, PERSONAGENS[0].nome, PERSONAGENS[0].apelido, C.p1luz);
+    figura('p2_parado0', 'p2_parado', 3, PERSONAGENS[1].nome, PERSONAGENS[1].apelido, C.p2luz);
+    figura('coco4', 'coco_parada', 3, 'CÓCÓ', 'A GALINHA DE ESTIMAÇÃO DO IMPERADOR', C.moeda);
+    figura('imperador', null, 1.2, 'O IMPERADOR', 'DONO DA CÓCÓ - E DO SEU EMPREGO', C.ui);
+    secao('OS CHEFES');
+    figura('bg_parado0', 'bg_parado', 1.1, 'O GIGANTE REAL', fase('guarda'), C.perigo2);
+    figura('sr_parado0', 'sr_parado', 0.75, 'SAMURAI ROBÔ', fase('samurai'), '#ff6a6a');
+    figura('cr_parado0', 'cr_parado', 1, 'A GALINHA ROBÔ', fase('coco'), '#9fe8ff');
+    secao('PARTICIPAÇÃO ESPECIAL');
+    var bichos = [['gato0', 'gato_anda'], ['corvo0', 'corvo_voa'], ['guardinha0', 'guardinha_anda']];
+    for (i = 0; i < bichos.length; i++) {
+      sp = poe(this.add.sprite(LARG / 2 + (i - 1) * 120, y + 70, bichos[i][0]).setOrigin(0.5, 1).setScale(2));
+      if (this.anims.exists(bichos[i][1])) sp.play(bichos[i][1]);
+    }
+    y += 92;
+    linha('GATOS DE TELHADO, CORVOS E A GUARDA IMPERIAL', 9, C.ui, 30);
+    secao('FEITO COM');
+    linha('PHASER 3', 11, C.ui, 28);
+    linha('PIXEL ART DESENHADA EM CÓDIGO', 9, C.cinza, 24);
+    linha('MÚSICA E SONS GERADOS NA HORA (WEB AUDIO)', 9, C.cinza, 24);
+    linha('FONTE SILKSCREEN', 9, C.cinza, 24);
+    y += 90;
+    var yFim = y;
+    linha('OBRIGADO POR JOGAR!', 18, C.moeda, 40);
+    // sobe ate o "obrigado" parar no meio da tela, espera e segue
+    var dist = (ALT + 30) - (ALT / 2 - yFim);
+    this.tweens.add({ targets: rolo, y: ALT / 2 - yFim, duration: dist / 0.115, ease: 'Linear',
+                      onComplete: function () { cena.time.delayedCall(1800, function () { cena.acabaCreditos(); }); } });
+    this.objsCred.push(txt(this, LARG - 16, 20, 'ENTER: PULAR', 7, C.cinza, 1, 0.5).setDepth(20));
+    MUSICA.toca('final');
+    this.cameras.main.fadeIn(600, 26, 28, 44);
+  },
+
+  // fim dos creditos (ou ENTER): um instante de silencio e a cena seguinte
+  acabaCreditos: function () {
+    if (this.etapa !== 'creditos') return;
+    var cena = this;
+    this.etapa = 'transicao';
+    MUSICA.para();
+    this.cameras.main.fadeOut(POUCO_MOV ? 1 : 600, 13, 14, 23);
+    this.time.delayedCall(POUCO_MOV ? 20 : 650, function () {
+      var i;
+      cena.tweens.killTweensOf(cena.rolo);
+      for (i = 0; i < cena.objsCred.length; i++) cena.objsCred[i].destroy();
+      cena.objsCred = [];
+      if (cena.ambCred) {
+        cena.ambCred.vinheta.destroy();
+        for (i = 0; i < cena.ambCred.emis.length; i++) cena.ambCred.emis[i].destroy();
+        cena.ambCred = null;
+      }
+      cena.cameras.main.resetFX();
+      cena.posCreditos();
+    });
+  },
+
+  // ---- O JARDIM: Fuji ao por do sol, cerejeiras, lanternas e o jantar ------
+  montaJardim: function () {
+    // M = tampo da mesa; PISO = onde os pes tocam a varanda (tudo acima da
+    // faixa preta de baixo do cinema)
+    var cena = this, M = this.Y_MESA = 400, i, x, y, l, pts = [];
+    this.PISO = 474;
+    this.add.image(0, 0, 'ceu_jardim').setOrigin(0).setDepth(0);
+    this.add.tileSprite(0, 156, LARG, 170, 'montanhas_jardim').setOrigin(0).setDepth(1);
+    this.add.tileSprite(0, 256, LARG, 140, 'morros_jardim').setOrigin(0).setDepth(2);
+    // jardim seco: cascalho rastelado, moitas, o torii e a lanterna de pedra
+    this.add.tileSprite(0, 388, LARG, 44, 'cascalho').setOrigin(0).setDepth(3).setTileScale(3);
+    var moitas = [[150, 406], [330, 402], [640, 402], [812, 406]];
+    for (i = 0; i < moitas.length; i++) this.add.image(moitas[i][0], moitas[i][1], 'arbusto').setOrigin(0.5, 1).setScale(2).setDepth(3.3);
+    this.add.image(236, 410, 'torii').setOrigin(0.5, 1).setScale(0.8).setDepth(3.2);
+    this.add.image(742, 426, 'toro').setOrigin(0.5, 1).setScale(2).setDepth(3.4);
+    var brilhoToro = this.add.image(742, 398, 'luz_rad').setBlendMode('ADD').setTint(0xffcd75).setAlpha(0.4).setScale(0.35).setDepth(3.5);
+    if (!POUCO_MOV) this.tweens.add({ targets: brilhoToro, alpha: 0.22, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // cerejeiras emoldurando os cantos
+    this.add.image(64, 434, 'sakura').setOrigin(0.5, 1).setScale(2).setDepth(3.6);
+    this.add.image(898, 434, 'sakura').setOrigin(0.5, 1).setScale(2).setDepth(3.6).setFlipX(true);
+    // a varanda de madeira (engawa), com a quina da frente
+    this.add.tileSprite(0, 428, LARG, ALT - 428, 'deck').setOrigin(0).setDepth(4).setTileScale(3);
+    var g = this.add.graphics().setDepth(4.1);
+    g.fillStyle(0x4a2a22, 1); g.fillRect(0, 426, LARG, 3);
+    g.fillStyle(0xc28a5e, 1); g.fillRect(0, 429, LARG, 2);
+    // varal de lanterninhas de papel de uma cerejeira a outra
+    for (i = 0; i <= 24; i++) {
+      x = 40 + (LARG - 80) * i / 24;
+      pts.push(new Phaser.Math.Vector2(x, 96 + 46 * Math.sin(Math.PI * i / 24)));
+    }
+    var fio = this.add.graphics().setDepth(5);
+    fio.lineStyle(2, 0x1a1c2c, 1); fio.strokePoints(pts);
+    for (i = 0; i < 7; i++) {
+      x = 150 + i * 110;
+      y = 96 + 46 * Math.sin(Math.PI * (x - 40) / (LARG - 80));
+      this.add.image(x, y + 22, 'luz_rad').setBlendMode('ADD').setTint(0xff8a4a).setAlpha(0.32).setScale(0.42).setDepth(5);
+      l = this.add.image(x, y - 1, 'chochin').setOrigin(0.5, 0).setScale(2).setDepth(5.2);
+      if (!POUCO_MOV) {
+        l.angle = -3;
+        this.tweens.add({ targets: l, angle: 3, duration: 1500 + i * 130, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+    }
+    // a mesa e os dois tratadores sentados atras dela, comendo
+    this.mesa = this.add.image(480, M, 'mesa').setOrigin(0.5, 0).setScale(3).setDepth(8);
+    this.k = this.add.sprite(372, M + 25, 'p1_come0').setOrigin(0.5, 1).setScale(3).setDepth(7).play('p1_come');
+    this.t = this.add.sprite(596, M + 25, 'p2_come0').setOrigin(0.5, 1).setScale(3).setDepth(7).setFlipX(true);
+    this.t.play({ key: 'p2_come', startFrame: 2 });
+    this.frango = this.add.image(478, M + 15, 'frango').setOrigin(0.5, 1).setScale(3).setDepth(9);
+    this.pratos = [
+      this.frango,
+      this.add.image(408, M + 16, 'tigela').setOrigin(0.5, 1).setScale(3).setDepth(9),
+      this.add.image(566, M + 16, 'tigela').setOrigin(0.5, 1).setScale(3).setDepth(9).setFlipX(true),
+      this.add.image(354, M + 15, 'xicara').setOrigin(0.5, 1).setScale(3).setDepth(9),
+      this.add.image(624, M + 15, 'xicara').setOrigin(0.5, 1).setScale(3).setDepth(9),
+      this.add.image(546, M + 9, 'bule').setOrigin(0.5, 1).setScale(3).setDepth(8.5)
+    ];
+    // o frango ainda soltando vapor, e as migalhas das mordidas
+    this.vapor = this.add.particles(0, 0, 'fumaca', {
+      x: { min: 462, max: 494 }, y: M - 14, lifespan: 1500, speedY: { min: -38, max: -20 },
+      speedX: { min: -8, max: 8 }, scale: { start: 0.35, end: 1.1 }, alpha: { start: 0.32, end: 0 },
+      tint: 0xffffff, frequency: POUCO_MOV ? 900 : 260
+    }).setDepth(9.5);
+    this.migalhas = this.add.particles(0, 0, 'pixel', {
+      lifespan: 520, speed: { min: 40, max: 110 }, angle: { min: 200, max: 340 }, gravityY: 520,
+      scale: 1.6, tint: [0xd0802e, 0xf2b45a, 0xf4f4f4], emitting: false
+    }).setDepth(9.6);
+    // petalas maiores caindo na frente (as do clima ficam mais ao fundo)
+    this.add.particles(0, 0, 'petala', {
+      x: { min: 0, max: LARG }, y: -12, lifespan: 7500, speedY: { min: 36, max: 70 },
+      speedX: { min: -46, max: -10 }, rotate: { start: 0, end: 360 }, scale: { min: 2, max: 3 },
+      alpha: { start: 1, end: 0.6 }, frequency: POUCO_MOV ? 1400 : 360
+    }).setDepth(40);
+    this.amb = criaAmbiente(this, 'jardim');
+    // as mordidas: no quadro da coxinha na boca, "NHAC!" e migalhas
+    this.comendo = true; this.nMordidas = 0;
+    var morde = function (spr, lado) {
+      return function (anim, quadro) {
+        if (!cena.comendo || !quadro || quadro.index !== 4) return;
+        cena.nMordidas++;
+        SOM.nhac();
+        cena.migalhas.explode(FX.qtd(5), spr.x + lado * 22, spr.y - 72);
+        if (cena.nMordidas % 2 === 1) balao(cena, spr.x + lado * 30, spr.y - 105, 'NHAC!', lado > 0 ? C.p1luz : C.p2luz);
+      };
+    };
+    this.k.on('animationupdate', morde(this.k, 1));
+    this.t.on('animationupdate', morde(this.t, -1));
+  },
+
+  // ---- A CENA DEPOIS DOS CREDITOS --------------------------------------------
+  posCreditos: function () {
+    var cena = this;
+    this.etapa = 'pos';
+    this.cameras.main.setBounds(0, 0, LARG, ALT);
+    this.montaJardim();
+    this.cinema = new Cinema(this);
+    this.cinema.barras(true, 1);
+    this.roteiro = new Roteiro(this, this.passosPos(), function () { cena.sai(false); },
+                               function () { cena.cinema.limpaTextos(); cena.sai(true); });
+    this.roteiro.podePular = Save.viuCena('posCreditos') || ADMIN.ligado;
+    if (this.roteiro.podePular) this.cinema.dica('ENTER: PULAR');
+  },
+
+  passosPos: function () {
+    var cena = this, cam = this.cameras.main, cin = this.cinema, K = this.k, T = this.t, M = this.Y_MESA, PISO = this.PISO;
+    var cc = null;
+    var foca = function (x, y, z, ms) {
+      cam.pan(x, y, POUCO_MOV ? 1 : ms, 'Sine.easeInOut', true);
+      cam.zoomTo(z, POUCO_MOV ? 1 : ms, 'Sine.easeInOut', true);
+    };
+    // pulo em arco de onde ela esta ate (x1, y1)
+    var salta = function (x1, y1, alto, ms) {
+      var x0 = cc.x, y0 = cc.y, o = { p: 0 };
+      cena.tweens.add({ targets: o, p: 1, duration: ms, onUpdate: function () {
+        cc.x = x0 + (x1 - x0) * o.p;
+        cc.y = y0 + (y1 - y0) * o.p - Math.sin(o.p * Math.PI) * alto;
+      } });
+    };
+    return [
+      // 0. tela escura: "alguns dias depois..."
+      { ms: 1800, ini: function () {
+          cena.cortina = cena.add.rectangle(0, 0, LARG, ALT, 0x0d0e17).setOrigin(0).setScrollFactor(0).setDepth(300);
+          cena.aviso = txt(cena, LARG / 2, ALT / 2, 'ALGUNS DIAS DEPOIS...', 12, C.ui).setScrollFactor(0).setDepth(301).setAlpha(0);
+          cena.tweens.add({ targets: cena.aviso, alpha: 1, duration: 500 });
+          MUSICA.toca('sakura');
+        } },
+      { ms: 0, ini: function () {
+          cena.tweens.add({ targets: [cena.cortina, cena.aviso], alpha: 0, duration: POUCO_MOV ? 1 : 1000 });
+          legenda(cena, 'MÚSICA CALMA', C.cinza);
+        } },
+      // 1. o jantar: uns 4 segundos de paz, frango assado e cha verde
+      { ms: 2000, ini: function () { cin.fala('KOBURÔ: AHHH... ISSO SIM É VIDA.', C.p1luz, 1500); } },
+      { ms: 2100, ini: function () { cin.fala('TOBIAS: E SEM NENHUMA GALINHA FUGINDO!', C.p2luz, 1600); } },
+      // 2. ...e a Cócó pula na mesa
+      { ms: 760, ini: function () {
+          SOM.pulo();
+          cc = cena.cc = cena.add.sprite(LARG + 50, PISO, 'coco6').setOrigin(0.5, 1).setScale(3).setDepth(10);
+          cc.flipX = true;
+          salta(538, M + 21, 190, 720);
+        } },
+      // pousa no meio dos pratos: a mesa treme e os dois congelam na mordida
+      { ms: 1000, ini: function () {
+          cc.setTexture('coco7');
+          SOM.cacarejo(); legenda(cena, 'CACAREJO', C.ui);
+          cena.comendo = false;
+          K.stop(); K.setTexture('p1_come1');
+          T.stop(); T.setTexture('p2_come1');
+          cena.chacoalhaMesa();
+          FX.solta(cena, 'pena', 4, cc.x, cc.y - 30);
+          balao(cena, cc.x, cc.y - 100, 'CÓ CÓ!', C.ui);
+        } },
+      // ela cisca toda feliz, sem reparar em nada
+      { ms: 1200, ini: function () {
+          cc.play('coco_parada');
+          balao(cena, K.x + 8, K.y - 112, '...', C.p1luz);
+          balao(cena, T.x - 8, T.y - 124, '!!', C.p2luz);
+        } },
+      // 3. ...ate reparar no que tem no prato
+      { ms: 1500, ini: function () {
+          cc.stop(); cc.setTexture('coco5');
+          MUSICA.para();
+          foca(cc.x - 40, M - 50, 1.45, 900);
+          SOM.cacarejoFraco();
+          balao(cena, cc.x, cc.y - 100, '...?', C.ui);
+        } },
+      { ms: 700, ini: function () { cc.setTexture('coco4'); } },
+      // 4. o susto
+      { ms: 1600, ini: function () {
+          cc.setTexture('coco6');
+          SOM.revelacao(); SOM.cacarejoSusto(); legenda(cena, 'GRITO DE SUSTO', C.perigo);
+          var av = cena.add.image(cc.x + 6, cc.y - 168, 'aviso').setScale(2).setDepth(31);
+          if (!POUCO_MOV) cena.tweens.add({ targets: av, scale: 2.6, duration: 120, yoyo: true });
+          cena.time.delayedCall(1400, function () { av.destroy(); });
+          FX.solta(cena, 'pena', 18, cc.x, cc.y - 40);
+          FX.flash(cena, 120);
+          if (!POUCO_MOV) {
+            cam.shake(260, 0.008);
+            cena.tweens.add({ targets: cc, y: cc.y - 26, duration: 160, yoyo: true, ease: 'Quad.easeOut' });
+          }
+          balao(cena, cc.x - 74, cc.y - 126, 'CÓÓÓÓ?!', '#ff6a6a');
+          // e os dois levam um susto do susto dela: as coxinhas voam
+          K.setTexture('p1_pula0'); T.setTexture('p2_pula0');
+          cena.jogaCoxa(K, -1); cena.jogaCoxa(T, 1);
+        } },
+      { ms: 1600, ini: function () {
+          T.play('p2_parado'); K.setTexture('p1_cai0');
+          cin.fala('TOBIAS: N-NÃO É O QUE VOCÊ TÁ PENSANDO, CÓCÓ!', C.p2luz, 1400);
+        } },
+      // 5. ela foge de novo, pulando da mesa
+      { ms: 1200, ini: function () {
+          foca(LARG / 2, ALT / 2, 1, 700);
+          MUSICA.toca('corrida');
+          cc.flipX = false; cc.play('coco_corre');
+          SOM.cacarejo(); legenda(cena, 'CACAREJO', C.ui);
+          balao(cena, cc.x, cc.y - 100, 'SOCORROOO! CÓ CÓ CÓ!', '#ff6a6a');
+          FX.solta(cena, 'pena', 6, cc.x, cc.y - 30);
+          salta(700, PISO, 80, 520);
+          cena.time.delayedCall(540, function () {
+            if (cc.active) cena.tweens.add({ targets: cc, x: LARG + 90, duration: 560 });
+          });
+        } },
+      // 6. e os dois saem correndo atras dela
+      { ms: 1500, ini: function () {
+          cin.fala('KOBURÔ: EI, CÓCÓ! VOLTA AQUI!', C.p1luz, 1300);
+          cena.correAtras(K, 0, null);
+          cena.correAtras(T, 420, 'E-ESPERA POR MIM!');
+        } },
+      // 7. a mesa vazia, o frango esfriando... e um cacarejo ao longe
+      { ms: 1100, ini: function () { SOM.cacarejo(); balao(cena, LARG - 130, PISO - 70, 'CÓ CÓ CÓÓÓ!', C.ui); } },
+      { ms: 3200, ini: function () { cin.titulo('', 'FIM...?', 'A CÓCÓ FUGIU DE NOVO.', C.moeda, 2700); } }
+    ];
+  },
+
+  // a mesa balanca com o pouso e a louca pula junto
+  chacoalhaMesa: function () {
+    var i, p;
+    if (POUCO_MOV) return;
+    this.tweens.add({ targets: this.mesa, y: this.mesa.y + 3, duration: 60, yoyo: true, repeat: 1 });
+    for (i = 0; i < this.pratos.length; i++) {
+      p = this.pratos[i];
+      this.tweens.add({ targets: p, y: p.y - 8 - (i % 3) * 3, duration: 110, yoyo: true, ease: 'Quad.easeOut', delay: i * 18 });
+    }
+  },
+
+  // a coxinha sai voando da mao, gira e cai na varanda
+  jogaCoxa: function (spr, lado) {
+    var c = this.add.image(spr.x + lado * 20, spr.y - 74, 'coxa').setScale(3).setDepth(11);
+    var x0 = c.x, y0 = c.y, x1 = c.x + lado * 150, y1 = this.PISO - 4, o = { p: 0 };
+    this.tweens.add({ targets: o, p: 1, duration: POUCO_MOV ? 1 : 900, onUpdate: function () {
+      c.x = x0 + (x1 - x0) * o.p;
+      c.y = y0 + (y1 - y0) * o.p - Math.sin(o.p * Math.PI) * 120;
+      c.angle = o.p * 540 * lado;
+    } });
+  },
+
+  // levanta da almofada e sai correndo para a direita pelo jardim, por tras
+  // da mesa (de pe, os pes ficam no cascalho, la atras da varanda)
+  correAtras: function (spr, atraso, fala) {
+    var cena = this, id = spr === this.k ? 1 : 2;
+    this.time.delayedCall(atraso, function () {
+      if (!spr.active) return;
+      spr.flipX = false;
+      spr.play('p' + id + '_corre');
+      if (fala) balao(cena, spr.x, spr.y - 112, fala, id === 1 ? C.p1luz : C.p2luz);
+      cena.tweens.add({ targets: spr, y: cena.Y_MESA + 2, duration: 180, ease: 'Quad.easeOut' });
+      cena.tweens.add({ targets: spr, x: LARG + 80, duration: 1200 + (id === 1 ? 200 : 0), ease: 'Quad.easeIn' });
+    });
+  },
+
+  // segue para o resumo da campanha com os dados que vieram da fase
+  sai: function (rapido) {
+    if (this.saindo) return;
+    var cena = this;
+    this.saindo = true;
+    Save.marcaCena('posCreditos');
+    this.cameras.main.fadeOut(rapido ? 300 : 900, 26, 28, 44);
+    this.time.delayedCall(rapido ? 320 : 920, function () { cena.scene.start('GameOverScene', cena.d); });
+  },
+
+  update: function (tempo, delta) {
+    var dt = Math.min(delta, 34), t = this.teclas;
+    checaMudo(t);
+    var pula = JD(t.enter) || TOQUE.ap('ok');
+    if (this.etapa === 'creditos') {
+      if (pula) this.acabaCreditos();
+    } else if (this.roteiro) {
+      if (this.roteiro.podePular && pula) this.roteiro.pula();
+      else this.roteiro.atualiza(dt);
+    }
+    if (this.cinema) this.cinema.atualiza();
+  }
+});
+
+// ============================================================================
 //  CONFIGURACAO E INICIO DO JOGO
 // ============================================================================
 preparaFases();
 Save.carregar();
 Controles.carregar();
+ADMIN.carrega();
 
 var config = {
   type: Phaser.AUTO,
@@ -12478,7 +13422,7 @@ var config = {
     default: 'arcade',
     arcade: { gravity: { y: FIS.GRAV }, debug: false }
   },
-  scene: [BootScene, MenuScene, CampaignScene, RaceScene, GameOverScene]
+  scene: [BootScene, MenuScene, CampaignScene, RaceScene, GameOverScene, FimScene]
 };
 
 var jogo = new Phaser.Game(config);
@@ -12827,9 +13771,51 @@ function runGameTests() {
 
   // ---- CENAS ----
   t('cenas: todas registradas no jogo', function () {
-    var nomes = ['BootScene', 'MenuScene', 'CampaignScene', 'RaceScene', 'GameOverScene'];
+    var nomes = ['BootScene', 'MenuScene', 'CampaignScene', 'RaceScene', 'GameOverScene', 'FimScene'];
     for (var i = 0; i < nomes.length; i++) if (!jogo.scene.getScene(nomes[i])) return false;
     return true;
+  });
+  t('vento: a corrente de ar vence a gravidade (leva para cima de verdade)', function () {
+    return ELEM.VENTO > FIS.GRAV && ELEM.VENTO_MAX < 0;
+  });
+  t('plataformas: as soltas no ar viram de passagem; chao e bloco sobre o vazio nao', function () {
+    var g = ['........', '..###...', '........', '.##.....', '........', '########', '########'];
+    var r = achaPlataformas(g), r2 = achaPlataformas(['......', '..##..', '......', '......']);
+    return r.lista.length === 2 && r.grade[1] === '........' && r.grade[3] === '........' &&
+           r.grade[5] === '########' && r2.lista.length === 0;
+  });
+  t('mapas: telha escorregadia nunca joga direto no mato', function () {
+    for (var i = 0; i < FASES.length; i++) {
+      var g = normalizaMapa(FASES[i].mapa), y, x, k;
+      for (y = 1; y < g.length; y++) {
+        for (x = 0; x < g[y].length; x++) {
+          if (g[y].charAt(x) !== 'A' || g[y].charAt(x + 1) === 'A') continue;   // fim de um trecho
+          for (k = 1; k <= 2; k++) if (g[y - 1].charAt(x + k) === '^') return false;
+        }
+      }
+    }
+    return true;
+  });
+  t('admin: CTRL+M e o codigo 67 ligam e desligam; codigo errado nao', function () {
+    var antes = ADMIN.ligado;
+    var ev = function (o) { o.preventDefault = function () {}; o.stopPropagation = function () {}; return o; };
+    var digita = function (cod) {
+      ADMIN.tecla(ev({ ctrlKey: true, key: 'm', code: 'KeyM' }));
+      for (var k = 0; k < cod.length; k++) ADMIN.tecla(ev({ key: cod[k], code: 'Digit' + cod[k] }));
+    };
+    ADMIN.ligado = false;
+    digita('12'); var errado = ADMIN.ligado;
+    digita('67'); var ligou = ADMIN.ligado;
+    digita('67'); var desligou = !ADMIN.ligado;
+    ADMIN.ligado = antes; ADMIN.salva(); ADMIN.selo(); ADMIN.fecha();
+    return !errado && ligou && desligou;
+  });
+  t('fim: creditos e cena depois deles com a arte e a musica prontas', function () {
+    var ch = ['mesa', 'frango', 'sakura', 'chochin', 'toro', 'deck', 'cascalho', 'coxa', 'tigela',
+              'p1_come1', 'p2_come1', 'ceu_jardim', 'montanhas_jardim'], i;
+    for (i = 0; i < ch.length; i++) if (!jogo.textures.exists(ch[i])) return false;
+    return !!FAIXAS.sakura && jogo.anims.exists('p1_come') && jogo.anims.exists('p2_come') &&
+           !!FASES[NUM_FASES - 1].final;
   });
   t('menu: toda opcao leva a algum lugar', function () {
     var m = jogo.scene.getScene('MenuScene');
